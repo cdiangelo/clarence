@@ -7,7 +7,7 @@ React Native / Expo app with Claude AI deeply integrated as a personal life comp
 ## Stack
 - **Framework**: Expo SDK 56 + React Native 0.85 (TypeScript)
 - **Navigation**: Expo Router v4 (file-based, `app/` directory)
-- **AI**: `@anthropic-ai/sdk` — `claude-opus-4-8` model with full tool use
+- **AI**: Anthropic Messages API via `fetch` (no SDK — avoids Node built-ins in RN) — `claude-opus-4-8` model with full tool use
 - **State**: Zustand (in-memory; add AsyncStorage persistence if desired)
 
 ## Key files
