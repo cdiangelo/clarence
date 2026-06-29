@@ -12,6 +12,10 @@ import { ComboChart } from './ComboChart';
 import { SlopeChart } from './SlopeChart';
 import { HeatmapChart } from './HeatmapChart';
 import { AnnotatedLineChart } from './AnnotatedLineChart';
+import { SunburstChart } from './SunburstChart';
+import { RadialScatterChart } from './RadialScatterChart';
+import { RadialTimelineChart } from './RadialTimelineChart';
+import { SlantedBarChart } from './SlantedBarChart';
 
 interface Props {
   spec: ChartSpec;
@@ -45,6 +49,14 @@ export function ChartRenderer({ spec }: Props) {
         return <HeatmapChart data={d as never} width={chartWidth} />;
       case 'annotated_line':
         return <AnnotatedLineChart data={d as never} width={chartWidth} />;
+      case 'sunburst':
+        return <SunburstChart data={d as never} size={Math.min(chartWidth, 320)} />;
+      case 'radial_scatter':
+        return <RadialScatterChart data={d as never} size={Math.min(chartWidth, 320)} />;
+      case 'radial_timeline':
+        return <RadialTimelineChart data={d as never} size={Math.min(chartWidth, 340)} />;
+      case 'slanted_bar':
+        return <SlantedBarChart data={d as never} config={cfg} width={chartWidth} />;
       default:
         return <Text style={{ color: colors.textMuted, fontSize: 12 }}>Unknown chart type: {spec.type}</Text>;
     }

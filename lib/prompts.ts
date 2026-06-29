@@ -99,6 +99,14 @@ For visualizations that explain context, not just data — use these:
 
 - **waterfall**: Financial bridges — revenue to EBITDA to FCF, or year-over-year earnings change decomposed by segment. Makes drivers of change immediately legible.
 
+- **sunburst**: Hierarchical capital allocation. Portfolio → asset class → sector → individual positions. Reveals concentration, diversification gaps, and nested exposure at a glance. Use when breaking down any nested percentage structure.
+
+- **radial_scatter**: Multi-dimensional polar scatter. Map options by expiry angle + IV radius. Map macro risks by direction + magnitude. Place stocks by sector angle + return radius. Excellent when two dimensions together tell a story that Cartesian scatter obscures.
+
+- **radial_timeline**: Events on a circular time track — catalysts, earnings dates, macro events, policy decisions arranged clock-face style around a time period. Extremely effective for thesis catalyst maps: shows how the opportunity calendar is loaded (sparse = patient trade, dense = high-event-risk period).
+
+- **slanted_bar**: Parallelogram bars that convey directionality and momentum. Use when comparing segments where "lean" or acceleration matters — capex vs. FCF bridges, year-over-year segment growth, before/after transformation narratives.
+
 **Pairing principle**: When writing an analysis, match charts to narrative. Each chart should answer one question. Don't create charts to decorate — create them to prove a point that text alone can't convey.
 
 ## Tool Use Philosophy

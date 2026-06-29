@@ -191,7 +191,7 @@ export const INVESTMENT_TOOLS: ToolDef[] = [
       properties: {
         type: {
           type: 'string',
-          enum: ['bar', 'line', 'waterfall', 'radar', 'scatter', 'candlestick', 'combo', 'slope', 'heatmap', 'annotated_line'],
+          enum: ['bar', 'line', 'waterfall', 'radar', 'scatter', 'candlestick', 'combo', 'slope', 'heatmap', 'annotated_line', 'sunburst', 'radial_scatter', 'radial_timeline', 'slanted_bar'],
         },
         title: { type: 'string' },
         subtitle: { type: 'string' },
@@ -206,7 +206,11 @@ export const INVESTMENT_TOOLS: ToolDef[] = [
 - combo: {labels, bars:{label,values}, lines:[{label,values,color?}]} — revenue bars + margin line
 - slope: {items:[{label,before,after,color?}], beforeLabel, afterLabel} — before/after comparison e.g. pre/post earnings, sector rotation
 - heatmap: {rowLabels, colLabels, values:number[][], colorScale?:'rg'|'diverging'|'sequential'} — correlation matrix, factor exposures, return calendar
-- annotated_line: {labels:string[], values:number[], annotations?:[{x:string|number, label, type?:'fed'|'earnings'|'macro'|'news'}], secondaryValues?, secondaryLabel?} — price/metric with contextual event markers; excellent for layering macro/political/social context onto financial data`,
+- annotated_line: {labels:string[], values:number[], annotations?:[{x:string|number, label, type?:'fed'|'earnings'|'macro'|'news'}], secondaryValues?, secondaryLabel?} — price/metric with contextual event markers; excellent for layering macro/political/social context onto financial data
+- sunburst: {root:{name, value?, color?, children?:[...]}} — hierarchical concentric ring chart; ideal for portfolio allocation (asset class → sector → position), capital flows, or any nested breakdown
+- radial_scatter: {points:[{angle:0-360, radius:number, label?, size?, color?, category?}], maxRadius?, rings?, ringLabels?, spokeLabels?, categories?} — polar coordinate scatter; use for multi-dimensional positioning (e.g., IV by expiry angle, risk/return in polar space)
+- radial_timeline: {events:[{date:'YYYY-MM-DD', label, description?, type?:'milestone'|'catalyst'|'risk'|'event', color?}], startDate, endDate, centerLabel?} — circular time track placing catalysts, risks, and milestones around a clock face; compelling for thesis catalyst timelines
+- slanted_bar: {labels:string[], datasets:[{label, values:number[], color?}], slantDeg?} — parallelogram-shaped bars for visual dynamism; strong for comparison charts where directional momentum matters`,
         },
         config: {
           type: 'object',

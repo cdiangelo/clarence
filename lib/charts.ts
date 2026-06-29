@@ -1,4 +1,4 @@
-export type ChartType = 'bar' | 'line' | 'waterfall' | 'radar' | 'scatter' | 'candlestick' | 'combo' | 'slope' | 'heatmap' | 'annotated_line';
+export type ChartType = 'bar' | 'line' | 'waterfall' | 'radar' | 'scatter' | 'candlestick' | 'combo' | 'slope' | 'heatmap' | 'annotated_line' | 'sunburst' | 'radial_scatter' | 'radial_timeline' | 'slanted_bar';
 
 export interface ChartSpec {
   id: string;
@@ -91,6 +91,60 @@ export interface ComboData {
   labels: string[];
   bars: { label: string; values: number[]; color?: string };
   lines: { label: string; values: number[]; color?: string }[];
+}
+
+// Sunburst chart — hierarchical concentric rings
+export interface SunburstNode {
+  name: string;
+  value?: number;
+  color?: string;
+  children?: SunburstNode[];
+}
+
+export interface SunburstData {
+  root: SunburstNode;
+}
+
+// Radial scatter — polar coordinate scatter plot
+export interface RadialScatterPoint {
+  angle: number;       // degrees 0–360
+  radius: number;      // 0 to maxRadius
+  label?: string;
+  size?: number;
+  color?: string;
+  category?: string;
+}
+
+export interface RadialScatterData {
+  points: RadialScatterPoint[];
+  maxRadius?: number;
+  rings?: number;
+  ringLabels?: string[];
+  spokeLabels?: string[];
+  categories?: { name: string; color: string }[];
+}
+
+// Radial timeline — events arranged on a circular time track
+export interface RadialTimelineEvent {
+  date: string;
+  label: string;
+  description?: string;
+  type?: 'milestone' | 'event' | 'catalyst' | 'risk';
+  color?: string;
+}
+
+export interface RadialTimelineData {
+  events: RadialTimelineEvent[];
+  startDate: string;
+  endDate: string;
+  centerLabel?: string;
+}
+
+// Slanted bar — parallelogram-shaped bars for visual dynamism
+export interface SlantedBarData {
+  labels: string[];
+  datasets: { label: string; values: number[]; color?: string }[];
+  slantDeg?: number;
 }
 
 export function processWaterfall(items: WaterfallItem[]): ProcessedWaterfallItem[] {
