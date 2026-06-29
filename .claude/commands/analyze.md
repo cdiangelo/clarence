@@ -1,4 +1,8 @@
-Deep-dive investment analysis on $ARGUMENTS. Apply the full contrarian research framework below.
+Deep-dive investment analysis. Arguments: $ARGUMENTS
+
+**If $ARGUMENTS is a single ticker** (e.g. "NVDA", "AAPL"): proceed as written below.
+**If $ARGUMENTS is a natural language description** (e.g. "a fintech ETF similar to ARKF", "best AI infrastructure play"): first identify the single most relevant ticker using your training knowledge and web search, state your reasoning in one sentence, then proceed with that ticker.
+**If $ARGUMENTS is multiple tickers** (comma-separated): run the Snapshot and Contrarian Thesis sections for each, then add a comparative ranking by conviction at the end.
 
 ---
 

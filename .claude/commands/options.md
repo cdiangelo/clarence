@@ -1,19 +1,39 @@
-Deep options analysis on $ARGUMENTS. Cover IV landscape, skew, term structure, and arbitrage opportunities.
+Deep options analysis. Arguments: $ARGUMENTS
+
+---
+
+## 0. Parse Intent First
+
+Before fetching anything, classify the argument:
+
+**Case A — Single ticker** (1-5 uppercase chars, no spaces, e.g. "NVDA", "SPY", "AAPL"):
+→ Proceed directly to Step 1 with that ticker.
+
+**Case B — Natural language query** (e.g. "stocks similar to DFTX", "fintech ETFs", "find opportunities in semis"):
+→ First, identify 3-5 specific liquid tickers relevant to the query using your training knowledge and any web searches you can run.
+→ Briefly explain each ticker's relevance (1 line).
+→ Then run the full options analysis below for EACH ticker, clearly separated by headers.
+→ At the end, add a cross-ticker comparison: which has the most interesting IV setup, best skew opportunity, or cleanest arbitrage flag.
+
+**Case C — Ticker + context** (e.g. "NVDA earnings play", "SPY hedge"):
+→ Use the ticker, but weight the analysis toward the stated intent (event vol, directional hedge, etc.).
 
 ---
 
 ## 1. Fetch Options Data
 
+For each ticker to analyze:
+
 **Current quote:**
-`https://query1.finance.yahoo.com/v10/finance/quoteSummary/$ARGUMENTS?modules=price,summaryDetail`
+`https://query1.finance.yahoo.com/v10/finance/quoteSummary/TICKER?modules=price,summaryDetail`
 
 **Options chain (nearest expiry — returns all available expirations):**
-`https://query1.finance.yahoo.com/v7/finance/options/$ARGUMENTS`
+`https://query1.finance.yahoo.com/v7/finance/options/TICKER`
 
 **Price history for realized vol calculation (6mo daily):**
-`https://query1.finance.yahoo.com/v8/finance/chart/$ARGUMENTS?interval=1d&range=6mo`
+`https://query1.finance.yahoo.com/v8/finance/chart/TICKER?interval=1d&range=6mo`
 
-For additional expirations, fetch: `https://query1.finance.yahoo.com/v7/finance/options/$ARGUMENTS?date=UNIX_TIMESTAMP` for the next 2-3 expiry dates returned in the first call.
+For additional expirations, fetch: `https://query1.finance.yahoo.com/v7/finance/options/TICKER?date=UNIX_TIMESTAMP` for the next 2-3 expiry dates returned in the first call.
 
 ---
 
@@ -90,27 +110,35 @@ For each idea: structure, strikes, expiry, rationale, max risk, max reward, brea
 
 ## 4. Generate IV Scatter Chart
 
-Write `.clarence/artifacts/$ARGUMENTS-options-YYYY-MM-DD.html` — a standalone HTML file with Chart.js:
+For single-ticker analysis, write `.clarence/artifacts/TICKER-options-YYYY-MM-DD.html`.
+For multi-ticker analysis, write a single combined file: `.clarence/artifacts/options-scan-YYYY-MM-DD.html` with one section per ticker.
+
+Standalone HTML file with Chart.js (CDN: `https://cdn.jsdelivr.net/npm/chart.js`):
 
 **Chart 1 — IV by Strike (Volatility Smile/Skew)**
 - X-axis: strike prices (show 80% to 120% of spot, step by $2-5)
 - Y-axis: implied volatility %
 - Two datasets: calls (blue) and puts (red) for the nearest expiry
 - Vertical dashed line at spot price
-- Title: "$ARGUMENTS Options — IV Surface (nearest expiry)"
+- Title: "TICKER Options — IV Surface (nearest expiry)"
 
 **Chart 2 — Term Structure**
 - X-axis: expiration dates
 - Y-axis: ATM IV %
 - Line chart showing IV across next 4-6 expirations
-- Title: "$ARGUMENTS — IV Term Structure"
+- Title: "TICKER — IV Term Structure"
 
-Style: dark theme matching the rest of the system (#060A14 bg, #111926 chart, #3B82F6 / #EF4444 accents).
+For multi-ticker scans, add Chart 3: a bar chart comparing IV Rank across all analyzed tickers — immediately shows which has richest/cheapest vol.
+
+Style: dark theme (#060A14 bg, #111926 chart, #3B82F6 / #EF4444 accents).
 
 ---
 
 ## 5. Save Summary
 
-Write `.clarence/analyses/$ARGUMENTS-options-YYYY-MM-DD.md` with: spot, IV rank, skew read, any arbitrage flags, trade ideas. Include artifact path.
+For single ticker: `.clarence/analyses/TICKER-options-YYYY-MM-DD.md`
+For multi-ticker scan: `.clarence/analyses/options-scan-YYYY-MM-DD.md` with a ranked opportunity table at the top.
+
+Include: spot, IV rank, skew read, arbitrage flags, trade ideas, artifact path.
 
 Confirm save. Output: top 3 observations from the options market in plain English.
