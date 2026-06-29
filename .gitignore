@@ -37,6 +37,10 @@ yarn-error.*
 # Claude Code
 .claude/
 
+# Next.js
+.next/
+out/
+
 # typescript
 *.tsbuildinfo
 
