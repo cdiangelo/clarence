@@ -1,7 +1,20 @@
 Build a structured investment thesis. Arguments: $ARGUMENTS
 
-Parse arguments as: [TICKER] [long|short|neutral] [optional free-text title or context]
-Examples: `NVDA long`, `AAPL short overvalued on services multiple`, `MSFT neutral`
+**Parse the argument type first:**
+
+**Type A — Single ticker** (e.g. `NVDA long`, `AAPL short overvalued on services multiple`):
+→ Parse as [TICKER] [long|short|neutral] [optional context]. Proceed to Step 1.
+
+**Type B — Thematic / natural language** (e.g. `top 3 areas with uncertainty on a 2027 horizon`, `best AI infrastructure plays`, `psychedelic biotech setup`):
+→ This is a thematic thesis request. Do NOT attempt to parse as a ticker.
+→ Identify the 2-5 most relevant investment themes or specific names.
+→ For each, write a full thesis document in the format below.
+→ No live data fetch needed for thematic reasoning — but explicitly note: "Price targets and valuation scenarios require `/analyze [ticker]` with live data."
+→ Save each thesis as `.clarence/theses/THEME-direction-YYYY-MM-DD.md`.
+→ Add all relevant tickers to `.clarence/watchlist.json`.
+
+**Type C — Ticker without direction** (e.g. `NVDA`):
+→ Infer the most defensible direction from context (portfolio holdings, prior theses, watchlist notes). State your reasoning. If genuinely ambiguous, write both a long and short framing and ask the user to choose.
 
 ---
 
