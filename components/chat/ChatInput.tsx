@@ -75,7 +75,7 @@ export function ChatInput({ onSend, disabled = false, suggestions = [] }: ChatIn
           ref={inputRef}
           value={text}
           onChangeText={setText}
-          placeholder="Message Clarence..."
+          placeholder="Ask anything — stocks, options, thesis..."
           placeholderTextColor={colors.textMuted}
           multiline
           maxLength={2000}

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { sendMessage, type ConversationMessage, type ToolHandler } from '../lib/claude';
-import type { ClarenceContext } from '../lib/prompts';
+import type { InvestContext } from '../lib/prompts';
+import type { ChartSpec } from '../lib/charts';
 
 function uid(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -13,12 +14,15 @@ export interface ChatMessage {
   timestamp: string;
   toolsUsed?: string[];
   error?: boolean;
+  charts?: ChartSpec[];
 }
 
 interface ChatStore {
   messages: ChatMessage[];
   isLoading: boolean;
-  send: (content: string, ctx: ClarenceContext, onToolCall: ToolHandler) => Promise<void>;
+  pendingCharts: ChartSpec[];
+  send: (content: string, ctx: InvestContext, onToolCall: ToolHandler) => Promise<void>;
+  addPendingChart: (chart: ChartSpec) => void;
   clear: () => void;
   addSystemMessage: (content: string) => void;
 }
@@ -26,6 +30,10 @@ interface ChatStore {
 export const useChatStore = create<ChatStore>((set, get) => ({
   messages: [],
   isLoading: false,
+  pendingCharts: [],
+
+  addPendingChart: (chart) =>
+    set((s) => ({ pendingCharts: [...s.pendingCharts, chart] })),
 
   send: async (content, ctx, onToolCall) => {
     const userMsg: ChatMessage = {
@@ -35,7 +43,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       timestamp: new Date().toISOString(),
     };
 
-    set((s) => ({ messages: [...s.messages, userMsg], isLoading: true }));
+    set((s) => ({ messages: [...s.messages, userMsg], isLoading: true, pendingCharts: [] }));
 
     const history: ConversationMessage[] = get()
       .messages.filter((m) => m.role === 'user' || m.role === 'assistant')
@@ -44,14 +52,16 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
     try {
       const result = await sendMessage(content, history, ctx, onToolCall);
+      const charts = get().pendingCharts;
       const assistantMsg: ChatMessage = {
         id: uid(),
         role: 'assistant',
         content: result.text,
         timestamp: new Date().toISOString(),
         toolsUsed: result.toolsUsed.length ? result.toolsUsed : undefined,
+        charts: charts.length ? charts : undefined,
       };
-      set((s) => ({ messages: [...s.messages, assistantMsg], isLoading: false }));
+      set((s) => ({ messages: [...s.messages, assistantMsg], isLoading: false, pendingCharts: [] }));
     } catch (err) {
       const errMsg: ChatMessage = {
         id: uid(),
@@ -60,11 +70,11 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         timestamp: new Date().toISOString(),
         error: true,
       };
-      set((s) => ({ messages: [...s.messages, errMsg], isLoading: false }));
+      set((s) => ({ messages: [...s.messages, errMsg], isLoading: false, pendingCharts: [] }));
     }
   },
 
-  clear: () => set({ messages: [] }),
+  clear: () => set({ messages: [], pendingCharts: [] }),
 
   addSystemMessage: (content) =>
     set((s) => ({

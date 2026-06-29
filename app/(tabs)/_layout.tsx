@@ -13,12 +13,11 @@ interface TabConfig {
 }
 
 const TABS: TabConfig[] = [
-  { name: 'index', title: 'Home', icon: 'home-outline', activeIcon: 'home', color: colors.primary },
-  { name: 'chat', title: 'Chat', icon: 'chatbubble-outline', activeIcon: 'chatbubble', color: colors.chat },
-  { name: 'schedule', title: 'Schedule', icon: 'calendar-outline', activeIcon: 'calendar', color: colors.primary },
-  { name: 'health', title: 'Health', icon: 'heart-outline', activeIcon: 'heart', color: colors.health },
-  { name: 'finance', title: 'Finance', icon: 'wallet-outline', activeIcon: 'wallet', color: colors.finance },
-  { name: 'trips', title: 'Trips', icon: 'airplane-outline', activeIcon: 'airplane', color: colors.trips },
+  { name: 'index', title: 'Dashboard', icon: 'grid-outline', activeIcon: 'grid', color: colors.primary },
+  { name: 'chat', title: 'Analyst', icon: 'chatbubble-ellipses-outline', activeIcon: 'chatbubble-ellipses', color: colors.primary },
+  { name: 'research', title: 'Research', icon: 'document-text-outline', activeIcon: 'document-text', color: colors.gold },
+  { name: 'markets', title: 'Markets', icon: 'trending-up-outline', activeIcon: 'trending-up', color: colors.gain },
+  { name: 'reports', title: 'Reports', icon: 'bar-chart-outline', activeIcon: 'bar-chart', color: colors.primaryLight },
 ];
 
 export default function TabsLayout() {
@@ -30,8 +29,8 @@ export default function TabsLayout() {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
           borderTopWidth: 1,
-          height: 80,
-          paddingBottom: 16,
+          height: 76,
+          paddingBottom: 14,
           paddingTop: 8,
         },
         tabBarActiveTintColor: colors.primary,
@@ -45,10 +44,10 @@ export default function TabsLayout() {
           name={tab.name}
           options={{
             title: tab.title,
-            tabBarIcon: ({ focused, color }) => (
+            tabBarIcon: ({ focused }) => (
               <Ionicons
                 name={focused ? tab.activeIcon : tab.icon}
-                size={22}
+                size={21}
                 color={focused ? tab.color : colors.textMuted}
               />
             ),

@@ -3,235 +3,268 @@ import { ScrollView, View, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, typography, radius } from '../../constants/theme';
-import { Card } from '../../components/ui/Card';
-import { useScheduleStore } from '../../stores/schedule';
-import { useHealthStore } from '../../stores/health';
-import { useFinanceStore } from '../../stores/finance';
-import { useTripsStore } from '../../stores/trips';
+import { colors, spacing, radius, typography } from '../../constants/theme';
+import { usePortfolioStore } from '../../stores/portfolio';
+import { useResearchStore } from '../../stores/research';
+import { useWatchlistStore } from '../../stores/watchlist';
+import { useOptionsStore } from '../../stores/options';
 
 const QUICK_PROMPTS = [
-  "What should I focus on today?",
-  "How am I doing this week?",
-  "Suggest something to do this weekend",
-  "Help me plan a trip",
+  'What are the softest assumptions in current AI chip valuations?',
+  'Find put-call parity violations in SPY options',
+  'Analyze NVDA financials — revenue quality and margin trajectory',
+  'Where is the market pricing in too much optimism right now?',
+  'Build a DCF for MSFT with bear/base/bull scenarios',
+  'Pressure test my most recent thesis',
 ];
 
-export default function HomeScreen() {
-  const schedule = useScheduleStore();
-  const health = useHealthStore();
-  const finance = useFinanceStore();
-  const trips = useTripsStore();
+export default function DashboardScreen() {
+  const portfolio = usePortfolioStore();
+  const research = useResearchStore();
+  const watchlist = useWatchlistStore();
+  const options = useOptionsStore();
 
-  const now = new Date();
-  const hour = now.getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const today = now.toISOString().split('T')[0];
-  const todayEvents = schedule.getEventsForDate(today);
-  const streak = health.getWorkoutStreak();
-  const monthSpent = finance.getMonthTotal();
-  const latestMood = health.getLatestMood();
-  const planningTrips = trips.trips.filter((t) => t.status !== 'completed');
+  const activeTheses = research.theses.filter((t) => t.stage !== 'closed');
+  const longTheses = activeTheses.filter((t) => t.direction === 'long');
+  const shortTheses = activeTheses.filter((t) => t.direction === 'short');
+  const recentAnalyses = options.analyses.slice(0, 3);
+
+  function StatCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.surfaceElevated,
+          borderRadius: radius.md,
+          borderWidth: 1,
+          borderColor: colors.border,
+          padding: spacing.sm + 2,
+          minWidth: 90,
+        }}
+      >
+        <Text style={[typography.caption, { marginBottom: 4 }]}>{label.toUpperCase()}</Text>
+        <Text style={{ color: color ?? colors.text, fontSize: 18, fontWeight: '700', fontFamily: 'monospace' }}>
+          {value}
+        </Text>
+        {sub && <Text style={[typography.caption, { marginTop: 2 }]}>{sub}</Text>}
+      </View>
+    );
+  }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: spacing.xxl }}
-        showsVerticalScrollIndicator={false}
-      >
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: spacing.xl }} showsVerticalScrollIndicator={false}>
+
         {/* Header */}
-        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md }}>
-          <Text style={[typography.caption, { color: colors.textMuted, marginBottom: 4 }]}>
-            {now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-          </Text>
-          <Text style={[typography.h1]}>{greeting}.</Text>
+        <View style={{ paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.sm }}>
+          <Text style={[typography.caption, { letterSpacing: 2, marginBottom: 4 }]}>INVESTMENT RESEARCH</Text>
+          <Text style={typography.h1}>Dashboard</Text>
         </View>
 
-        {/* Quick chat prompts */}
-        <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.lg }}>
-          <Text style={[typography.label, { marginBottom: spacing.sm }]}>Ask Clarence</Text>
+        {/* Stats row */}
+        <View style={{ flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.md }}>
+          <StatCard
+            label="Positions"
+            value={String(portfolio.positions.length)}
+            sub={portfolio.positions.length ? portfolio.positions.map((p) => p.ticker).join(' · ').slice(0, 20) : 'None tracked'}
+          />
+          <StatCard
+            label="Theses"
+            value={String(activeTheses.length)}
+            sub={`${longTheses.length}L · ${shortTheses.length}S`}
+            color={colors.gold}
+          />
+          <StatCard
+            label="Watchlist"
+            value={String(watchlist.entries.length)}
+            sub="tracked"
+          />
+        </View>
+
+        {/* Quick access to chat */}
+        <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.md }}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => router.push('/(tabs)/chat')}
+            style={{
+              backgroundColor: colors.primary,
+              borderRadius: radius.lg,
+              padding: spacing.md,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.sm,
+            }}
+          >
+            <Ionicons name="chatbubble-ellipses" size={18} color="#fff" />
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15, flex: 1 }}>
+              Ask the Analyst
+            </Text>
+            <Ionicons name="arrow-forward" size={16} color="rgba(255,255,255,0.6)" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Quick prompts */}
+        <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
+          <Text style={[typography.label, { marginBottom: spacing.sm }]}>QUICK ANALYSIS</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            <View style={{ flexDirection: 'row', gap: spacing.sm, paddingRight: spacing.md }}>
               {QUICK_PROMPTS.map((p, i) => (
                 <TouchableOpacity
                   key={i}
+                  activeOpacity={0.8}
                   onPress={() => router.push({ pathname: '/(tabs)/chat', params: { prompt: p } })}
                   style={{
                     backgroundColor: colors.surfaceElevated,
-                    borderRadius: radius.full,
+                    borderRadius: radius.lg,
                     borderWidth: 1,
-                    borderColor: colors.borderLight,
+                    borderColor: colors.border,
                     paddingHorizontal: spacing.md,
                     paddingVertical: spacing.sm,
+                    maxWidth: 220,
                   }}
                 >
-                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{p}</Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 12, lineHeight: 17 }}>{p}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           </ScrollView>
         </View>
 
-        {/* Today's schedule */}
-        <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-          <SectionHeader title="Today" onPress={() => router.push('/(tabs)/schedule')} />
-          {todayEvents.length === 0 ? (
-            <Card>
-              <Text style={typography.bodySmall}>Nothing scheduled today.</Text>
+        {/* Active Theses */}
+        <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm }}>
+            <Text style={typography.label}>ACTIVE THESES</Text>
+            <TouchableOpacity onPress={() => router.push('/(tabs)/research')}>
+              <Text style={{ color: colors.primary, fontSize: 12 }}>View all →</Text>
+            </TouchableOpacity>
+          </View>
+
+          {activeTheses.length === 0 ? (
+            <View style={{
+              backgroundColor: colors.surfaceElevated,
+              borderRadius: radius.lg,
+              borderWidth: 1,
+              borderColor: colors.border,
+              padding: spacing.md,
+              alignItems: 'center',
+            }}>
+              <Text style={[typography.bodySmall, { textAlign: 'center' }]}>
+                No active theses yet.{'\n'}Start by asking the analyst to develop a thesis on any stock.
+              </Text>
+            </View>
+          ) : (
+            activeTheses.slice(0, 3).map((t) => (
               <TouchableOpacity
-                onPress={() => router.push({ pathname: '/(tabs)/chat', params: { prompt: "Help me plan my day" } })}
-                style={{ marginTop: spacing.sm }}
+                key={t.id}
+                activeOpacity={0.8}
+                onPress={() => router.push('/(tabs)/research')}
+                style={{
+                  backgroundColor: colors.surfaceElevated,
+                  borderRadius: radius.md,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderLeftWidth: 3,
+                  borderLeftColor: t.direction === 'long' ? colors.gain : t.direction === 'short' ? colors.loss : colors.textMuted,
+                  padding: spacing.sm + 4,
+                  marginBottom: spacing.xs,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: spacing.sm,
+                }}
               >
-                <Text style={{ color: colors.primary, fontSize: 14, fontWeight: '600' }}>
-                  Ask Clarence to help plan it →
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.primary, fontSize: 11, fontFamily: 'monospace', fontWeight: '700' }}>
+                    {t.ticker ?? 'MACRO'} · {t.direction.toUpperCase()}
+                  </Text>
+                  <Text style={[typography.bodySmall, { color: colors.text, marginTop: 1 }]} numberOfLines={1}>
+                    {t.title}
+                  </Text>
+                  {t.timingRange && (
+                    <Text style={[typography.caption, { marginTop: 2 }]}>{t.timingRange}</Text>
+                  )}
+                </View>
+                <Text style={{ color: colors.gold, fontSize: 11 }}>
+                  {'★'.repeat(t.conviction)}
                 </Text>
               </TouchableOpacity>
-            </Card>
-          ) : (
-            <View style={{ gap: spacing.sm }}>
-              {todayEvents.slice(0, 3).map((e) => (
-                <Card key={e.id} accent={colors.primary}>
-                  <Text style={typography.body}>{e.title}</Text>
-                  {e.time && (
-                    <Text style={[typography.bodySmall, { marginTop: 2 }]}>{e.time}</Text>
-                  )}
-                </Card>
-              ))}
-              {todayEvents.length > 3 && (
-                <TouchableOpacity onPress={() => router.push('/(tabs)/schedule')}>
-                  <Text style={{ color: colors.textSecondary, fontSize: 13, textAlign: 'center', padding: spacing.sm }}>
-                    +{todayEvents.length - 3} more
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
+            ))
           )}
         </View>
 
-        {/* Stats row */}
-        <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-          <SectionHeader title="At a glance" />
-          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-            <StatCard
-              label="Workout streak"
-              value={streak > 0 ? `${streak}d` : '—'}
-              color={colors.health}
-              icon="flame"
-              onPress={() => router.push('/(tabs)/health')}
-            />
-            <StatCard
-              label="Month spend"
-              value={`$${monthSpent.toFixed(0)}`}
-              color={colors.finance}
-              icon="wallet"
-              onPress={() => router.push('/(tabs)/finance')}
-            />
-            <StatCard
-              label="Mood"
-              value={latestMood ? `${latestMood.score}/10` : '—'}
-              color={colors.primary}
-              icon="heart"
-              onPress={() => router.push('/(tabs)/health')}
-            />
-          </View>
-        </View>
-
-        {/* Trips */}
-        {planningTrips.length > 0 && (
-          <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-            <SectionHeader title="Trips" onPress={() => router.push('/(tabs)/trips')} />
-            <View style={{ gap: spacing.sm }}>
-              {planningTrips.slice(0, 2).map((t) => (
-                <Card key={t.id} accent={colors.trips}>
-                  <Text style={typography.body}>{t.destination}</Text>
-                  <Text style={typography.bodySmall}>
-                    {t.startDate ?? 'Dates TBD'} · {t.itinerary.length} items planned
+        {/* Watchlist */}
+        {watchlist.entries.length > 0 && (
+          <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm }}>
+              <Text style={typography.label}>WATCHLIST</Text>
+              <TouchableOpacity onPress={() => router.push('/(tabs)/markets')}>
+                <Text style={{ color: colors.primary, fontSize: 12 }}>Markets →</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+              {watchlist.entries.map((e) => (
+                <TouchableOpacity
+                  key={e.ticker}
+                  activeOpacity={0.8}
+                  onPress={() => router.push({ pathname: '/(tabs)/chat', params: { prompt: `Quick analysis of ${e.ticker}` } })}
+                  style={{
+                    backgroundColor: colors.surfaceElevated,
+                    borderRadius: radius.md,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    paddingHorizontal: spacing.sm + 4,
+                    paddingVertical: spacing.sm,
+                  }}
+                >
+                  <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 13, fontFamily: 'monospace' }}>
+                    {e.ticker}
                   </Text>
-                </Card>
+                  {e.notes && (
+                    <Text style={[typography.caption, { marginTop: 2, maxWidth: 100 }]} numberOfLines={1}>
+                      {e.notes}
+                    </Text>
+                  )}
+                </TouchableOpacity>
               ))}
             </View>
           </View>
         )}
 
-        {/* Financial goals */}
-        {finance.goals.length > 0 && (
-          <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-            <SectionHeader title="Goals" onPress={() => router.push('/(tabs)/finance')} />
-            <View style={{ gap: spacing.sm }}>
-              {finance.goals.slice(0, 2).map((g) => {
-                const pct = Math.min((g.current / g.target) * 100, 100);
-                return (
-                  <Card key={g.id} accent={colors.finance}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <Text style={typography.body}>{g.title}</Text>
-                      <Text style={[typography.bodySmall, { color: colors.finance }]}>
-                        ${g.current.toFixed(0)} / ${g.target.toFixed(0)}
-                      </Text>
-                    </View>
-                    <View style={{ height: 4, backgroundColor: colors.border, borderRadius: 2 }}>
-                      <View
-                        style={{
-                          width: `${pct}%`,
-                          height: 4,
-                          backgroundColor: colors.finance,
-                          borderRadius: 2,
-                        }}
-                      />
-                    </View>
-                  </Card>
-                );
-              })}
-            </View>
+        {/* Recent Options Analyses */}
+        {recentAnalyses.length > 0 && (
+          <View style={{ paddingHorizontal: spacing.md }}>
+            <Text style={[typography.label, { marginBottom: spacing.sm }]}>RECENT OPTIONS ANALYSIS</Text>
+            {recentAnalyses.map((a) => (
+              <View
+                key={a.id}
+                style={{
+                  backgroundColor: colors.surfaceElevated,
+                  borderRadius: radius.md,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  padding: spacing.sm + 4,
+                  marginBottom: spacing.xs,
+                }}
+              >
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 }}>
+                  <Text style={{ color: colors.primary, fontWeight: '700', fontFamily: 'monospace', fontSize: 13 }}>
+                    {a.ticker}
+                  </Text>
+                  <Text style={typography.caption}>
+                    {new Date(a.analysisDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </Text>
+                </View>
+                <Text style={[typography.bodySmall, { color: colors.text }]}>{a.summary}</Text>
+                {a.arbitrageFlags.length > 0 && (
+                  <Text style={{ color: colors.gold, fontSize: 11, marginTop: 4 }}>
+                    ⚡ {a.arbitrageFlags.length} edge{a.arbitrageFlags.length !== 1 ? 's' : ''} flagged
+                  </Text>
+                )}
+              </View>
+            ))}
           </View>
         )}
+
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function SectionHeader({ title, onPress }: { title: string; onPress?: () => void }) {
-  return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm }}>
-      <Text style={typography.label}>{title.toUpperCase()}</Text>
-      {onPress && (
-        <TouchableOpacity onPress={onPress}>
-          <Text style={{ color: colors.textMuted, fontSize: 12 }}>See all →</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  color,
-  icon,
-  onPress,
-}: {
-  label: string;
-  value: string;
-  color: string;
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.8}
-      style={{
-        flex: 1,
-        backgroundColor: colors.surface,
-        borderRadius: radius.lg,
-        borderWidth: 1,
-        borderColor: colors.border,
-        padding: spacing.md,
-        gap: spacing.xs,
-      }}
-    >
-      <Ionicons name={icon} size={18} color={color} />
-      <Text style={[typography.h3, { color, fontSize: 20 }]}>{value}</Text>
-      <Text style={[typography.caption, { color: colors.textMuted }]}>{label}</Text>
-    </TouchableOpacity>
   );
 }

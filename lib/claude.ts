@@ -1,5 +1,5 @@
-import { CLARENCE_TOOLS } from './tools';
-import { buildSystemPrompt, type ClarenceContext } from './prompts';
+import { INVESTMENT_TOOLS } from './tools';
+import { buildSystemPrompt, type InvestContext } from './prompts';
 
 const API_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = 'claude-opus-4-8';
@@ -61,7 +61,7 @@ async function callAnthropic(system: string, messages: Message[]): Promise<Anthr
       max_tokens: 4096,
       system,
       messages,
-      tools: CLARENCE_TOOLS,
+      tools: INVESTMENT_TOOLS,
     }),
   });
 
@@ -83,7 +83,7 @@ async function callAnthropic(system: string, messages: Message[]): Promise<Anthr
 export async function sendMessage(
   userContent: string,
   history: ConversationMessage[],
-  ctx: ClarenceContext,
+  ctx: InvestContext,
   onToolCall: ToolHandler,
 ): Promise<SendMessageResult> {
   const toolsUsed: string[] = [];

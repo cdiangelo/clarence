@@ -1,29 +1,30 @@
 export const colors = {
-  bg: '#080B14',
-  surface: '#0F1320',
-  surfaceElevated: '#161C2E',
-  border: '#1E2540',
-  borderLight: '#252D45',
+  bg: '#060A14',
+  surface: '#0B1120',
+  surfaceElevated: '#111926',
+  border: '#1A2335',
+  borderLight: '#233045',
 
-  primary: '#6B5CF6',
-  primaryLight: '#8B7FF8',
-  primaryDim: '#6B5CF620',
+  primary: '#3B82F6',
+  primaryLight: '#60A5FA',
+  primaryDim: '#3B82F620',
 
-  health: '#34D399',
-  healthDim: '#34D39920',
-  finance: '#FBBF24',
-  financeDim: '#FBBF2420',
-  trips: '#FB7185',
-  tripsDim: '#FB718520',
-  chat: '#22D3EE',
-  chatDim: '#22D3EE20',
+  gain: '#10B981',
+  gainDim: '#10B98120',
+  loss: '#EF4444',
+  lossDim: '#EF444420',
+  gold: '#F59E0B',
+  goldDim: '#F59E0B20',
 
-  danger: '#F87171',
-  success: '#34D399',
+  chart: ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#06B6D4'] as string[],
 
-  text: '#F0F4FF',
-  textSecondary: '#7B8BB0',
-  textMuted: '#3D4A6B',
+  danger: '#EF4444',
+  success: '#10B981',
+  warning: '#F59E0B',
+
+  text: '#F0F6FF',
+  textSecondary: '#7B8FB0',
+  textMuted: '#3D4E6B',
 };
 
 export const spacing = {
@@ -36,20 +37,21 @@ export const spacing = {
 };
 
 export const radius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
+  sm: 6,
+  md: 10,
+  lg: 14,
+  xl: 20,
   full: 9999,
 };
 
 export const typography = {
-  h1: { fontSize: 30, fontWeight: '700' as const, color: colors.text, letterSpacing: -0.5 },
-  h2: { fontSize: 22, fontWeight: '700' as const, color: colors.text, letterSpacing: -0.3 },
-  h3: { fontSize: 18, fontWeight: '600' as const, color: colors.text },
-  body: { fontSize: 16, fontWeight: '400' as const, color: colors.text, lineHeight: 24 },
-  bodySmall: { fontSize: 14, fontWeight: '400' as const, color: colors.textSecondary, lineHeight: 20 },
-  caption: { fontSize: 12, fontWeight: '500' as const, color: colors.textMuted, letterSpacing: 0.3 },
-  label: { fontSize: 13, fontWeight: '600' as const, color: colors.textSecondary, letterSpacing: 0.2 },
+  h1: { fontSize: 28, fontWeight: '700' as const, color: colors.text, letterSpacing: -0.5 },
+  h2: { fontSize: 20, fontWeight: '700' as const, color: colors.text, letterSpacing: -0.3 },
+  h3: { fontSize: 17, fontWeight: '600' as const, color: colors.text },
+  body: { fontSize: 15, fontWeight: '400' as const, color: colors.text, lineHeight: 23 },
+  bodySmall: { fontSize: 13, fontWeight: '400' as const, color: colors.textSecondary, lineHeight: 19 },
+  caption: { fontSize: 11, fontWeight: '500' as const, color: colors.textMuted, letterSpacing: 0.4 },
+  label: { fontSize: 12, fontWeight: '600' as const, color: colors.textSecondary, letterSpacing: 0.3 },
   mono: { fontSize: 13, fontFamily: 'monospace' as const, color: colors.textSecondary },
+  monoSm: { fontSize: 12, fontFamily: 'monospace' as const, color: colors.textMuted },
 };
