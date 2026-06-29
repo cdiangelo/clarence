@@ -20,8 +20,14 @@ Parse the intent from "$ARGUMENTS":
 
 Use WebFetch to get current readings:
 
-**Treasury yields:**
+**Fetch the 10yr yield first — it is the data gate:**
 `https://query1.finance.yahoo.com/v8/finance/chart/%5ETNX?interval=1d&range=3mo` (10yr)
+
+**If this fails: STOP. Say:** "Cannot fetch live macro data. Run locally where Yahoo Finance is accessible. No analysis without data."
+
+**Do not substitute training-knowledge macro figures for live data.**
+
+Also fetch:
 `https://query1.finance.yahoo.com/v8/finance/chart/%5EIRX?interval=1d&range=3mo` (13w)
 `https://query1.finance.yahoo.com/v8/finance/chart/%5ETYX?interval=1d&range=3mo` (30yr)
 

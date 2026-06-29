@@ -24,16 +24,23 @@ Before fetching anything, classify the argument:
 
 For each ticker to analyze:
 
-**Current quote:**
+**Quote (fetch this first — it is the data gate):**
 `https://query1.finance.yahoo.com/v10/finance/quoteSummary/TICKER?modules=price,summaryDetail`
 
-**Options chain (nearest expiry — returns all available expirations):**
+**If this fetch fails (403, timeout, empty, any error): STOP. Do not proceed. Say exactly:**
+> "Cannot fetch live data for TICKER. Run this command locally where network access to Yahoo Finance is available. No analysis without data."
+
+**Do not use training knowledge or estimates as a substitute for live options data. Stale IV numbers are worse than no numbers.**
+
+If the quote fetch succeeds, continue:
+
+**Options chain:**
 `https://query1.finance.yahoo.com/v7/finance/options/TICKER`
 
-**Price history for realized vol calculation (6mo daily):**
+**Price history for HV20 (6mo daily):**
 `https://query1.finance.yahoo.com/v8/finance/chart/TICKER?interval=1d&range=6mo`
 
-For additional expirations, fetch: `https://query1.finance.yahoo.com/v7/finance/options/TICKER?date=UNIX_TIMESTAMP` for the next 2-3 expiry dates returned in the first call.
+For additional expirations: `https://query1.finance.yahoo.com/v7/finance/options/TICKER?date=UNIX_TIMESTAMP` for the next 2-3 expiry dates from the first call.
 
 ---
 

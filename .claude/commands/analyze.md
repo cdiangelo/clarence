@@ -10,14 +10,21 @@ Deep-dive investment analysis. Arguments: $ARGUMENTS
 
 Use WebFetch (or Bash curl as fallback) to pull:
 
-**Quote + key stats:**
-`https://query1.finance.yahoo.com/v10/finance/quoteSummary/$ARGUMENTS?modules=price,summaryDetail,financialData,defaultKeyStatistics`
+**Quote + key stats (fetch this first — it is the data gate):**
+`https://query1.finance.yahoo.com/v10/finance/quoteSummary/TICKER?modules=price,summaryDetail,financialData,defaultKeyStatistics`
+
+**If this fetch fails for any reason (403, timeout, empty response, network error): STOP. Do not proceed. Say exactly:**
+> "Cannot fetch live data for TICKER. Run this command locally where network access to Yahoo Finance is available. No analysis without data."
+
+**Do not substitute training knowledge, cached facts, or estimates for live data. Do not proceed with partial data.**
+
+If the quote fetch succeeds, continue with:
 
 **Financial statements (3-5yr history):**
-`https://query1.finance.yahoo.com/v10/finance/quoteSummary/$ARGUMENTS?modules=incomeStatementHistory,balanceSheetHistory,cashflowStatementHistory`
+`https://query1.finance.yahoo.com/v10/finance/quoteSummary/TICKER?modules=incomeStatementHistory,balanceSheetHistory,cashflowStatementHistory`
 
 **Price history (2yr weekly):**
-`https://query1.finance.yahoo.com/v8/finance/chart/$ARGUMENTS?interval=1wk&range=2y`
+`https://query1.finance.yahoo.com/v8/finance/chart/TICKER?interval=1wk&range=2y`
 
 Also search the web for 2-3 recent items: latest earnings call highlights, recent analyst upgrades/downgrades, any major news in the past 60 days.
 
