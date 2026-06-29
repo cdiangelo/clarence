@@ -1,7 +1,5 @@
 // Heatmap: correlation matrix, factor exposures, return calendars, sector heat
 import React from 'react';
-import { View } from 'react-native';
-import Svg, { Rect, Text as SvgText, G } from 'react-native-svg';
 import { colors } from '../../constants/theme';
 
 export interface HeatmapData {
@@ -61,11 +59,11 @@ export function HeatmapChart({ data, width = 340, formatValue }: Props) {
   const fmt = formatValue ?? ((v: number) => v.toFixed(2));
 
   return (
-    <View>
-      <Svg width={width} height={totalH}>
+    <div>
+      <svg width={width} height={totalH}>
         {/* Col headers */}
         {colLabels.map((label, ci) => (
-          <SvgText
+          <text
             key={ci}
             x={labelPadLeft + ci * cellW + cellW / 2}
             y={labelPadTop - 6}
@@ -75,14 +73,14 @@ export function HeatmapChart({ data, width = 340, formatValue }: Props) {
             fontWeight="600"
           >
             {label.length > 5 ? label.slice(0, 5) : label}
-          </SvgText>
+          </text>
         ))}
 
         {/* Rows */}
         {rowLabels.map((rowLabel, ri) => (
-          <G key={ri}>
+          <g key={ri}>
             {/* Row label */}
-            <SvgText
+            <text
               x={labelPadLeft - 6}
               y={labelPadTop + ri * cellH + cellH / 2 + 4}
               textAnchor="end"
@@ -90,7 +88,7 @@ export function HeatmapChart({ data, width = 340, formatValue }: Props) {
               fontSize={9}
             >
               {rowLabel}
-            </SvgText>
+            </text>
 
             {/* Cells */}
             {colLabels.map((_, ci) => {
@@ -102,9 +100,9 @@ export function HeatmapChart({ data, width = 340, formatValue }: Props) {
               const cellY = labelPadTop + ri * cellH;
 
               return (
-                <G key={ci}>
-                  <Rect x={cellX + 1} y={cellY + 1} width={cellW - 2} height={cellH - 2} fill={bg} rx={3} />
-                  <SvgText
+                <g key={ci}>
+                  <rect x={cellX + 1} y={cellY + 1} width={cellW - 2} height={cellH - 2} fill={bg} rx={3} />
+                  <text
                     x={cellX + cellW / 2}
                     y={cellY + cellH / 2 + 4}
                     textAnchor="middle"
@@ -113,13 +111,13 @@ export function HeatmapChart({ data, width = 340, formatValue }: Props) {
                     fontWeight="600"
                   >
                     {fmt(v)}
-                  </SvgText>
-                </G>
+                  </text>
+                </g>
               );
             })}
-          </G>
+          </g>
         ))}
-      </Svg>
-    </View>
+      </svg>
+    </div>
   );
 }

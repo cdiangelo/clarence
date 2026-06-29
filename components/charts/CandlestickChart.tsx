@@ -1,6 +1,4 @@
 import React from 'react';
-import { View } from 'react-native';
-import Svg, { Rect, Line, Text as SvgText, G } from 'react-native-svg';
 import { colors } from '../../constants/theme';
 import type { CandlestickData, ChartConfig } from '../../lib/charts';
 
@@ -47,12 +45,12 @@ export function CandlestickChart({ data, config, width = 340 }: Props) {
   const labelStep = Math.ceil(n / 6);
 
   return (
-    <View>
-      <Svg width={width} height={totalHeight}>
+    <div>
+      <svg width={width} height={totalHeight}>
         {/* Price area grid */}
         {ticks.map((t, i) => (
-          <G key={i}>
-            <Line
+          <g key={i}>
+            <line
               x1={PADDING.left}
               y1={toY(t)}
               x2={PADDING.left + chartW}
@@ -60,10 +58,10 @@ export function CandlestickChart({ data, config, width = 340 }: Props) {
               stroke={colors.border}
               strokeWidth={0.5}
             />
-            <SvgText x={PADDING.left - 4} y={toY(t) + 4} textAnchor="end" fill={colors.textMuted} fontSize={9}>
+            <text x={PADDING.left - 4} y={toY(t) + 4} textAnchor="end" fill={colors.textMuted} fontSize={9}>
               {t.toFixed(0)}
-            </SvgText>
-          </G>
+            </text>
+          </g>
         ))}
 
         {/* Candlesticks */}
@@ -78,11 +76,11 @@ export function CandlestickChart({ data, config, width = 340 }: Props) {
           const wickBot = toY(bar.low);
 
           return (
-            <G key={i}>
+            <g key={i}>
               {/* Wick */}
-              <Line x1={cx} y1={wickTop} x2={cx} y2={wickBot} stroke={barColor} strokeWidth={1} />
+              <line x1={cx} y1={wickTop} x2={cx} y2={wickBot} stroke={barColor} strokeWidth={1} />
               {/* Body */}
-              <Rect
+              <rect
                 x={cx - candleW / 2}
                 y={bodyTop}
                 width={candleW}
@@ -90,7 +88,7 @@ export function CandlestickChart({ data, config, width = 340 }: Props) {
                 fill={isGain ? barColor : barColor}
                 opacity={isGain ? 0.85 : 0.9}
               />
-            </G>
+            </g>
           );
         })}
 
@@ -103,7 +101,7 @@ export function CandlestickChart({ data, config, width = 340 }: Props) {
             const bh = (vol / maxVol) * (volH - 8);
             const by = priceH + (volH - 8 - bh);
             return (
-              <Rect
+              <rect
                 key={i}
                 x={cx - candleW / 2}
                 y={by}
@@ -121,7 +119,7 @@ export function CandlestickChart({ data, config, width = 340 }: Props) {
           const cx = PADDING.left + i * spacing + spacing / 2;
           const label = bar.date.slice(5); // MM-DD
           return (
-            <SvgText
+            <text
               key={i}
               x={cx}
               y={priceH - PADDING.bottom + 22}
@@ -130,10 +128,10 @@ export function CandlestickChart({ data, config, width = 340 }: Props) {
               fontSize={8}
             >
               {label}
-            </SvgText>
+            </text>
           );
         })}
-      </Svg>
-    </View>
+      </svg>
+    </div>
   );
 }

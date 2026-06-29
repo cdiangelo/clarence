@@ -1,55 +1,38 @@
 import React from 'react';
-import { TouchableOpacity, Text, type StyleProp, type ViewStyle } from 'react-native';
-import { colors, radius, spacing } from '../../constants/theme';
 
 interface ButtonProps {
   label: string;
-  onPress: () => void;
+  onClick: () => void;
   variant?: 'primary' | 'ghost' | 'outline';
-  color?: string;
   size?: 'sm' | 'md';
-  style?: StyleProp<ViewStyle>;
   disabled?: boolean;
+  className?: string;
 }
 
 export function Button({
   label,
-  onPress,
+  onClick,
   variant = 'primary',
-  color = colors.primary,
   size = 'md',
-  style,
   disabled = false,
+  className = '',
 }: ButtonProps) {
-  const pad = size === 'sm' ? { paddingHorizontal: spacing.md, paddingVertical: spacing.xs } : { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm + 2 };
-  const fontSize = size === 'sm' ? 13 : 15;
-
-  const bg =
-    variant === 'primary' ? color : variant === 'ghost' ? 'transparent' : 'transparent';
-  const textColor =
-    variant === 'primary' ? '#FFFFFF' : color;
-  const borderColor = variant === 'outline' ? color : 'transparent';
+  const base = 'inline-flex items-center justify-center rounded-full font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed';
+  const sizeClass = size === 'sm' ? 'px-3 py-1 text-xs' : 'px-5 py-2 text-sm';
+  const variantClass =
+    variant === 'primary'
+      ? 'bg-primary text-white hover:bg-primary-light'
+      : variant === 'outline'
+      ? 'border border-primary text-primary hover:bg-primary/10'
+      : 'text-primary hover:bg-primary/10';
 
   return (
-    <TouchableOpacity
-      onPress={onPress}
+    <button
+      onClick={onClick}
       disabled={disabled}
-      activeOpacity={0.75}
-      style={[
-        {
-          backgroundColor: bg,
-          borderRadius: radius.full,
-          borderWidth: variant === 'outline' ? 1 : 0,
-          borderColor,
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: disabled ? 0.4 : 1,
-        },
-        pad,
-        style,
-      ]}
+      className={`${base} ${sizeClass} ${variantClass} ${className}`}
     >
-      <Text style={{ color: textColor, fontSize, fontWeight: '600' }}>{label}</Text>
-    </TouchableOpacity>
+      {label}
+    </button>
   );
 }

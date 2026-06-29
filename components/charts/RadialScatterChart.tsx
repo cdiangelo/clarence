@@ -1,6 +1,4 @@
 import React from 'react';
-import { View, Text } from 'react-native';
-import Svg, { Circle, Line, Text as SvgText, G } from 'react-native-svg';
 import { colors } from '../../constants/theme';
 import type { RadialScatterData } from '../../lib/charts';
 
@@ -39,16 +37,16 @@ export function RadialScatterChart({ data, size = 300 }: Props) {
   const spokeDeg = 360 / spokeCount;
 
   return (
-    <View>
-      <Svg width={size} height={size}>
+    <div>
+      <svg width={size} height={size}>
         {/* Concentric rings */}
         {Array.from({ length: ringCount }, (_, ri) => {
           const r = ((ri + 1) / ringCount) * maxR;
           const label = data.ringLabels?.[ri] ?? `${((maxVal * (ri + 1)) / ringCount).toFixed(ri < 2 ? 1 : 0)}`;
           const isOuter = ri === ringCount - 1;
           return (
-            <G key={ri}>
-              <Circle
+            <g key={ri}>
+              <circle
                 cx={cx}
                 cy={cy}
                 r={r}
@@ -57,10 +55,10 @@ export function RadialScatterChart({ data, size = 300 }: Props) {
                 strokeWidth={isOuter ? 1 : 0.6}
                 strokeDasharray={isOuter ? undefined : '3,4'}
               />
-              <SvgText x={cx + 3} y={cy - r + 9} fill={colors.textMuted} fontSize={8}>
+              <text x={cx + 3} y={cy - r + 9} fill={colors.textMuted} fontSize={8}>
                 {label}
-              </SvgText>
-            </G>
+              </text>
+            </g>
           );
         })}
 
@@ -74,14 +72,14 @@ export function RadialScatterChart({ data, size = 300 }: Props) {
           const anchor = Math.abs(lx - cx) < 5 ? 'middle' : lx > cx ? 'start' : 'end';
           const label = spokeLabels[i];
           return (
-            <G key={i}>
-              <Line x1={cx} y1={cy} x2={x} y2={y} stroke={colors.border} strokeWidth={0.5} />
+            <g key={i}>
+              <line x1={cx} y1={cy} x2={x} y2={y} stroke={colors.border} strokeWidth={0.5} />
               {label && (
-                <SvgText x={lx} y={ly + 4} textAnchor={anchor} fill={colors.textSecondary} fontSize={9}>
+                <text x={lx} y={ly + 4} textAnchor={anchor} fill={colors.textSecondary} fontSize={9}>
                   {label}
-                </SvgText>
+                </text>
               )}
-            </G>
+            </g>
           );
         })}
 
@@ -91,23 +89,23 @@ export function RadialScatterChart({ data, size = 300 }: Props) {
           const dotR = p.size ?? 5;
           const c = getColor(p);
           return (
-            <G key={i}>
-              <Circle cx={x} cy={y} r={dotR} fill={`${c}BB`} stroke={c} strokeWidth={1} />
+            <g key={i}>
+              <circle cx={x} cy={y} r={dotR} fill={`${c}BB`} stroke={c} strokeWidth={1} />
               {p.label && (
-                <SvgText x={x + dotR + 2} y={y + 4} fill={colors.textSecondary} fontSize={8}>
+                <text x={x + dotR + 2} y={y + 4} fill={colors.textSecondary} fontSize={8}>
                   {p.label}
-                </SvgText>
+                </text>
               )}
-            </G>
+            </g>
           );
         })}
-      </Svg>
+      </svg>
 
       {data.categories && data.categories.length > 0 && (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 4 }}>
+        <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 4 }}>
           {data.categories.map((cat, i) => (
-            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View
+            <div key={i} style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <div
                 style={{
                   width: 9,
                   height: 9,
@@ -115,11 +113,11 @@ export function RadialScatterChart({ data, size = 300 }: Props) {
                   backgroundColor: cat.color ?? palette[i % palette.length],
                 }}
               />
-              <Text style={{ color: colors.textSecondary, fontSize: 10 }}>{cat.name}</Text>
-            </View>
+              <span style={{ color: colors.textSecondary, fontSize: 10 }}>{cat.name}</span>
+            </div>
           ))}
-        </View>
+        </div>
       )}
-    </View>
+    </div>
   );
 }

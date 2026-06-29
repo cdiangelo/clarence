@@ -1,11 +1,8 @@
 import { create } from 'zustand';
-import { sendMessage, type ConversationMessage, type ToolHandler } from '../lib/claude';
-import type { InvestContext } from '../lib/prompts';
+import { persist } from 'zustand/middleware';
 import type { ChartSpec } from '../lib/charts';
-
-function uid(): string {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
-}
+import type { StoreMutation } from '../lib/mutations';
+import { applyMutations } from '../lib/mutations';
 
 export interface ChatMessage {
   id: string;
@@ -20,67 +17,91 @@ export interface ChatMessage {
 interface ChatStore {
   messages: ChatMessage[];
   isLoading: boolean;
-  pendingCharts: ChartSpec[];
-  send: (content: string, ctx: InvestContext, onToolCall: ToolHandler) => Promise<void>;
-  addPendingChart: (chart: ChartSpec) => void;
+  send: (content: string, context: Record<string, unknown>) => Promise<void>;
   clear: () => void;
   addSystemMessage: (content: string) => void;
 }
 
-export const useChatStore = create<ChatStore>((set, get) => ({
-  messages: [],
-  isLoading: false,
-  pendingCharts: [],
+function uid() {
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
 
-  addPendingChart: (chart) =>
-    set((s) => ({ pendingCharts: [...s.pendingCharts, chart] })),
+export const useChatStore = create<ChatStore>()(
+  persist(
+    (set, get) => ({
+      messages: [],
+      isLoading: false,
 
-  send: async (content, ctx, onToolCall) => {
-    const userMsg: ChatMessage = {
-      id: uid(),
-      role: 'user',
-      content,
-      timestamp: new Date().toISOString(),
-    };
+      send: async (content, context) => {
+        const userMsg: ChatMessage = {
+          id: uid(),
+          role: 'user',
+          content,
+          timestamp: new Date().toISOString(),
+        };
 
-    set((s) => ({ messages: [...s.messages, userMsg], isLoading: true, pendingCharts: [] }));
+        set((s) => ({ messages: [...s.messages, userMsg], isLoading: true }));
 
-    const history: ConversationMessage[] = get()
-      .messages.filter((m) => m.role === 'user' || m.role === 'assistant')
-      .slice(-20)
-      .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
+        const history = get()
+          .messages.filter((m) => m.role === 'user' || m.role === 'assistant')
+          .slice(-20)
+          .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
 
-    try {
-      const result = await sendMessage(content, history, ctx, onToolCall);
-      const charts = get().pendingCharts;
-      const assistantMsg: ChatMessage = {
-        id: uid(),
-        role: 'assistant',
-        content: result.text,
-        timestamp: new Date().toISOString(),
-        toolsUsed: result.toolsUsed.length ? result.toolsUsed : undefined,
-        charts: charts.length ? charts : undefined,
-      };
-      set((s) => ({ messages: [...s.messages, assistantMsg], isLoading: false, pendingCharts: [] }));
-    } catch (err) {
-      const errMsg: ChatMessage = {
-        id: uid(),
-        role: 'assistant',
-        content: err instanceof Error ? err.message : 'Something went wrong.',
-        timestamp: new Date().toISOString(),
-        error: true,
-      };
-      set((s) => ({ messages: [...s.messages, errMsg], isLoading: false, pendingCharts: [] }));
-    }
-  },
+        try {
+          const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ message: content, history, context }),
+          });
 
-  clear: () => set({ messages: [], pendingCharts: [] }),
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+            throw new Error(err.error ?? `HTTP ${res.status}`);
+          }
 
-  addSystemMessage: (content) =>
-    set((s) => ({
-      messages: [
-        ...s.messages,
-        { id: uid(), role: 'system', content, timestamp: new Date().toISOString() },
-      ],
-    })),
-}));
+          const data: {
+            text: string;
+            charts: ChartSpec[];
+            mutations: StoreMutation[];
+            toolsUsed: string[];
+          } = await res.json();
+
+          applyMutations(data.mutations ?? []);
+
+          const assistantMsg: ChatMessage = {
+            id: uid(),
+            role: 'assistant',
+            content: data.text,
+            timestamp: new Date().toISOString(),
+            toolsUsed: data.toolsUsed?.length ? data.toolsUsed : undefined,
+            charts: data.charts?.length ? data.charts : undefined,
+          };
+          set((s) => ({ messages: [...s.messages, assistantMsg], isLoading: false }));
+        } catch (err) {
+          const errMsg: ChatMessage = {
+            id: uid(),
+            role: 'assistant',
+            content: err instanceof Error ? err.message : 'Something went wrong.',
+            timestamp: new Date().toISOString(),
+            error: true,
+          };
+          set((s) => ({ messages: [...s.messages, errMsg], isLoading: false }));
+        }
+      },
+
+      clear: () => set({ messages: [] }),
+
+      addSystemMessage: (content) =>
+        set((s) => ({
+          messages: [
+            ...s.messages,
+            { id: uid(), role: 'system', content, timestamp: new Date().toISOString() },
+          ],
+        })),
+    }),
+    {
+      name: 'clarence-chat',
+      partialize: (state) => ({ messages: state.messages.slice(-100) }),
+    },
+  ),
+);

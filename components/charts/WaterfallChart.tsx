@@ -1,6 +1,4 @@
 import React from 'react';
-import { View, Text } from 'react-native';
-import Svg, { Rect, Line, Text as SvgText, G, Path } from 'react-native-svg';
 import { colors } from '../../constants/theme';
 import type { WaterfallData, ProcessedWaterfallItem, ChartConfig } from '../../lib/charts';
 import { processWaterfall, formatChartValue } from '../../lib/charts';
@@ -45,12 +43,12 @@ export function WaterfallChart({ data, config, width = 340 }: Props) {
   const TOTAL_COLOR = colors.primary;
 
   return (
-    <View>
-      <Svg width={width} height={height}>
+    <div>
+      <svg width={width} height={height}>
         {/* Grid + Y labels */}
         {ticks.map((t, i) => (
-          <G key={i}>
-            <Line
+          <g key={i}>
+            <line
               x1={PADDING.left}
               y1={toY(t)}
               x2={PADDING.left + chartW}
@@ -58,14 +56,14 @@ export function WaterfallChart({ data, config, width = 340 }: Props) {
               stroke={colors.border}
               strokeWidth={0.5}
             />
-            <SvgText x={PADDING.left - 6} y={toY(t) + 4} textAnchor="end" fill={colors.textMuted} fontSize={9}>
+            <text x={PADDING.left - 6} y={toY(t) + 4} textAnchor="end" fill={colors.textMuted} fontSize={9}>
               {formatChartValue(t, fmt)}
-            </SvgText>
-          </G>
+            </text>
+          </g>
         ))}
 
         {/* Zero axis */}
-        <Line
+        <line
           x1={PADDING.left}
           y1={zeroY}
           x2={PADDING.left + chartW}
@@ -88,10 +86,10 @@ export function WaterfallChart({ data, config, width = 340 }: Props) {
           const connectorY = toY(item.end);
 
           return (
-            <G key={i}>
+            <g key={i}>
               {/* Connector */}
               {nextItem && !nextItem.color.startsWith('total') && (
-                <Line
+                <line
                   x1={cx + barW}
                   y1={connectorY}
                   x2={PADDING.left + (i + 1) * barSpacing + (barSpacing - barW) / 2}
@@ -102,10 +100,10 @@ export function WaterfallChart({ data, config, width = 340 }: Props) {
                 />
               )}
 
-              <Rect x={cx} y={barTop} width={barW} height={barH} fill={barColor} rx={2} opacity={0.9} />
+              <rect x={cx} y={barTop} width={barW} height={barH} fill={barColor} rx={2} opacity={0.9} />
 
               {/* Value label on top */}
-              <SvgText
+              <text
                 x={cx + barW / 2}
                 y={barTop - 3}
                 textAnchor="middle"
@@ -114,10 +112,10 @@ export function WaterfallChart({ data, config, width = 340 }: Props) {
                 fontWeight="600"
               >
                 {item.value >= 0 ? '+' : ''}{formatChartValue(item.value, fmt)}
-              </SvgText>
+              </text>
 
               {/* X label — two lines if needed */}
-              <SvgText
+              <text
                 x={cx + barW / 2}
                 y={PADDING.top + chartH + 16}
                 textAnchor="middle"
@@ -125,21 +123,21 @@ export function WaterfallChart({ data, config, width = 340 }: Props) {
                 fontSize={8}
               >
                 {item.label.length > 8 ? item.label.slice(0, 8) + '…' : item.label}
-              </SvgText>
-            </G>
+              </text>
+            </g>
           );
         })}
-      </Svg>
+      </svg>
 
       {/* Color legend */}
-      <View style={{ flexDirection: 'row', gap: 16, paddingLeft: PADDING.left, marginTop: 4 }}>
+      <div style={{ display: 'flex', flexDirection: 'row', gap: 16, paddingLeft: PADDING.left, marginTop: 4 }}>
         {[{ color: GAIN_COLOR, label: 'Increase' }, { color: LOSS_COLOR, label: 'Decrease' }, { color: TOTAL_COLOR, label: 'Total' }].map(({ color: c, label }) => (
-          <View key={label} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: c }} />
-            <Text style={{ color: colors.textMuted, fontSize: 10 }}>{label}</Text>
-          </View>
+          <div key={label} style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: c }} />
+            <span style={{ color: colors.textMuted, fontSize: 10 }}>{label}</span>
+          </div>
         ))}
-      </View>
-    </View>
+      </div>
+    </div>
   );
 }

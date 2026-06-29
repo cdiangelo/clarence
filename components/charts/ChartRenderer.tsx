@@ -1,7 +1,5 @@
 import React from 'react';
-import { View, Text, useWindowDimensions } from 'react-native';
-import { colors, spacing, radius, typography } from '../../constants/theme';
-import type { ChartSpec } from '../../lib/charts';
+import type { ChartSpec } from '@/lib/charts';
 import { BarChart } from './BarChart';
 import { LineChart } from './LineChart';
 import { WaterfallChart } from './WaterfallChart';
@@ -22,8 +20,7 @@ interface Props {
 }
 
 export function ChartRenderer({ spec }: Props) {
-  const { width: windowWidth } = useWindowDimensions();
-  const chartWidth = Math.min(windowWidth - spacing.md * 2 - 24, 380);
+  const chartWidth = 380;
 
   function renderChart() {
     const d = spec.data;
@@ -58,31 +55,17 @@ export function ChartRenderer({ spec }: Props) {
       case 'slanted_bar':
         return <SlantedBarChart data={d as never} config={cfg} width={chartWidth} />;
       default:
-        return <Text style={{ color: colors.textMuted, fontSize: 12 }}>Unknown chart type: {spec.type}</Text>;
+        return <span className="text-xs text-ink-muted">Unknown chart type: {spec.type}</span>;
     }
   }
 
   return (
-    <View
-      style={{
-        backgroundColor: colors.surfaceElevated,
-        borderRadius: radius.lg,
-        borderWidth: 1,
-        borderColor: colors.border,
-        padding: spacing.md,
-        marginTop: spacing.sm,
-        overflow: 'hidden',
-      }}
-    >
-      <Text style={[typography.label, { color: colors.text, marginBottom: 2, fontSize: 13 }]}>
-        {spec.title}
-      </Text>
+    <div className="bg-elevated border border-border rounded-xl p-4 mt-2 overflow-hidden">
+      <div className="text-sm font-semibold text-ink mb-0.5">{spec.title}</div>
       {spec.subtitle && (
-        <Text style={[typography.caption, { color: colors.textMuted, marginBottom: spacing.sm }]}>
-          {spec.subtitle}
-        </Text>
+        <div className="text-[11px] text-ink-muted mb-3">{spec.subtitle}</div>
       )}
       {renderChart()}
-    </View>
+    </div>
   );
 }

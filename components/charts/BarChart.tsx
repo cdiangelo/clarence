@@ -1,6 +1,4 @@
 import React from 'react';
-import { View, Text } from 'react-native';
-import Svg, { Rect, Line, Text as SvgText, G } from 'react-native-svg';
 import { colors } from '../../constants/theme';
 import type { BarData, ChartConfig } from '../../lib/charts';
 import { formatChartValue } from '../../lib/charts';
@@ -40,14 +38,14 @@ export function BarChart({ data, config, width = 320 }: Props) {
   const chartColors = config?.colors ?? colors.chart;
 
   return (
-    <View>
-      <Svg width={width} height={height}>
+    <div>
+      <svg width={width} height={height}>
         {/* Grid lines */}
         {ticks.map((t, i) => {
           const y = PADDING.top + toY(t);
           return (
-            <G key={i}>
-              <Line
+            <g key={i}>
+              <line
                 x1={PADDING.left}
                 y1={y}
                 x2={PADDING.left + chartW}
@@ -55,7 +53,7 @@ export function BarChart({ data, config, width = 320 }: Props) {
                 stroke={colors.border}
                 strokeWidth={0.5}
               />
-              <SvgText
+              <text
                 x={PADDING.left - 6}
                 y={y + 4}
                 textAnchor="end"
@@ -63,14 +61,14 @@ export function BarChart({ data, config, width = 320 }: Props) {
                 fontSize={9}
               >
                 {formatChartValue(t, fmt)}
-              </SvgText>
-            </G>
+              </text>
+            </g>
           );
         })}
 
         {/* Zero line */}
         {minVal < 0 && (
-          <Line
+          <line
             x1={PADDING.left}
             y1={PADDING.top + zeroY}
             x2={PADDING.left + chartW}
@@ -84,7 +82,7 @@ export function BarChart({ data, config, width = 320 }: Props) {
         {data.labels.map((label, gi) => {
           const gx = PADDING.left + gi * groupW;
           return (
-            <G key={gi}>
+            <g key={gi}>
               {data.datasets.map((ds, si) => {
                 const v = ds.values[gi] ?? 0;
                 const barColor = ds.color ?? chartColors[si % chartColors.length];
@@ -93,8 +91,8 @@ export function BarChart({ data, config, width = 320 }: Props) {
                 const bx = gx + barGap + si * barW;
 
                 return (
-                  <G key={si}>
-                    <Rect
+                  <g key={si}>
+                    <rect
                       x={bx}
                       y={barY}
                       width={barW - 1}
@@ -103,7 +101,7 @@ export function BarChart({ data, config, width = 320 }: Props) {
                       rx={2}
                     />
                     {config?.showValues && (
-                      <SvgText
+                      <text
                         x={bx + barW / 2}
                         y={barY - 3}
                         textAnchor="middle"
@@ -111,14 +109,14 @@ export function BarChart({ data, config, width = 320 }: Props) {
                         fontSize={8}
                       >
                         {formatChartValue(v, fmt)}
-                      </SvgText>
+                      </text>
                     )}
-                  </G>
+                  </g>
                 );
               })}
 
               {/* X label */}
-              <SvgText
+              <text
                 x={gx + groupW / 2}
                 y={PADDING.top + chartH + 14}
                 textAnchor="middle"
@@ -126,44 +124,42 @@ export function BarChart({ data, config, width = 320 }: Props) {
                 fontSize={9}
               >
                 {label}
-              </SvgText>
-            </G>
+              </text>
+            </g>
           );
         })}
 
         {/* Axis labels */}
         {config?.xLabel && (
-          <SvgText x={PADDING.left + chartW / 2} y={height - 4} textAnchor="middle" fill={colors.textSecondary} fontSize={9}>
+          <text x={PADDING.left + chartW / 2} y={height - 4} textAnchor="middle" fill={colors.textSecondary} fontSize={9}>
             {config.xLabel}
-          </SvgText>
+          </text>
         )}
         {config?.yLabel && (
-          <SvgText
+          <text
             x={10}
             y={PADDING.top + chartH / 2}
             textAnchor="middle"
             fill={colors.textSecondary}
             fontSize={9}
-            rotation={-90}
-            originX={10}
-            originY={PADDING.top + chartH / 2}
+            transform={`rotate(-90, 10, ${PADDING.top + chartH / 2})`}
           >
             {config.yLabel}
-          </SvgText>
+          </text>
         )}
-      </Svg>
+      </svg>
 
       {/* Legend */}
       {data.datasets.length > 1 && (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingLeft: PADDING.left, marginTop: 4 }}>
+        <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingLeft: PADDING.left, marginTop: 4 }}>
           {data.datasets.map((ds, i) => (
-            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: ds.color ?? colors.chart[i % colors.chart.length] }} />
-              <Text style={{ color: colors.textSecondary, fontSize: 10 }}>{ds.label}</Text>
-            </View>
+            <div key={i} style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: ds.color ?? colors.chart[i % colors.chart.length] }} />
+              <span style={{ color: colors.textSecondary, fontSize: 10 }}>{ds.label}</span>
+            </div>
           ))}
-        </View>
+        </div>
       )}
-    </View>
+    </div>
   );
 }

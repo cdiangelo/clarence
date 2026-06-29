@@ -1,8 +1,6 @@
 // Annotated line chart: price/metric series with event markers
 // Models Iron Viz / storytelling style — events create narrative context on data
 import React from 'react';
-import { View, Text } from 'react-native';
-import Svg, { Path, Line, Circle, Rect, Text as SvgText, G } from 'react-native-svg';
 import { colors } from '../../constants/theme';
 
 export interface ChartAnnotation {
@@ -79,16 +77,16 @@ export function AnnotatedLineChart({ data, width = 340, height = 220, formatY }:
     : null;
 
   return (
-    <View>
-      <Svg width={width} height={height}>
+    <div>
+      <svg width={width} height={height}>
         {/* Grid */}
         {ticks.map((t, i) => (
-          <G key={i}>
-            <Line x1={PAD.left} y1={toY(t)} x2={PAD.left + chartW} y2={toY(t)} stroke={colors.border} strokeWidth={0.5} />
-            <SvgText x={PAD.left - 5} y={toY(t) + 4} textAnchor="end" fill={colors.textMuted} fontSize={9}>
+          <g key={i}>
+            <line x1={PAD.left} y1={toY(t)} x2={PAD.left + chartW} y2={toY(t)} stroke={colors.border} strokeWidth={0.5} />
+            <text x={PAD.left - 5} y={toY(t) + 4} textAnchor="end" fill={colors.textMuted} fontSize={9}>
               {fmt(t)}
-            </SvgText>
-          </G>
+            </text>
+          </g>
         ))}
 
         {/* Annotation vertical lines — behind the chart line */}
@@ -96,7 +94,7 @@ export function AnnotatedLineChart({ data, width = 340, height = 220, formatY }:
           const x = toX(idx);
           const eventColor = ann.color ?? EVENT_COLORS[ann.type ?? 'default'];
           return (
-            <Line
+            <line
               key={idx}
               x1={x}
               y1={PAD.top}
@@ -112,11 +110,11 @@ export function AnnotatedLineChart({ data, width = 340, height = 220, formatY }:
 
         {/* Secondary line */}
         {secD && (
-          <Path d={secD} stroke={colors.gold} strokeWidth={1.5} fill="none" strokeDasharray="5,3" opacity={0.7} />
+          <path d={secD} stroke={colors.gold} strokeWidth={1.5} fill="none" strokeDasharray="5,3" opacity={0.7} />
         )}
 
         {/* Main line */}
-        <Path d={pathD} stroke={colors.primary} strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={pathD} stroke={colors.primary} strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
 
         {/* Annotation dots + labels at top */}
         {Array.from(annotationMap.entries()).map(([idx, ann]) => {
@@ -125,10 +123,10 @@ export function AnnotatedLineChart({ data, width = 340, height = 220, formatY }:
           const labelY = PAD.top - 6;
 
           return (
-            <G key={idx}>
-              <Circle cx={x} cy={toY(vals[idx] ?? 0)} r={4} fill={eventColor} />
+            <g key={idx}>
+              <circle cx={x} cy={toY(vals[idx] ?? 0)} r={4} fill={eventColor} />
               {/* Rotated label at top */}
-              <SvgText
+              <text
                 x={x}
                 y={labelY}
                 textAnchor="middle"
@@ -137,8 +135,8 @@ export function AnnotatedLineChart({ data, width = 340, height = 220, formatY }:
                 fontWeight="600"
               >
                 {ann.label.length > 10 ? ann.label.slice(0, 10) : ann.label}
-              </SvgText>
-            </G>
+              </text>
+            </g>
           );
         })}
 
@@ -146,30 +144,30 @@ export function AnnotatedLineChart({ data, width = 340, height = 220, formatY }:
         {data.labels.map((label, i) => {
           if (i % labelStep !== 0 && i !== n - 1) return null;
           return (
-            <SvgText key={i} x={toX(i)} y={PAD.top + chartH + 14} textAnchor="middle" fill={colors.textMuted} fontSize={9}>
+            <text key={i} x={toX(i)} y={PAD.top + chartH + 14} textAnchor="middle" fill={colors.textMuted} fontSize={9}>
               {label}
-            </SvgText>
+            </text>
           );
         })}
-      </Svg>
+      </svg>
 
       {/* Event type legend */}
       {(data.annotations ?? []).length > 0 && (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingLeft: PAD.left, marginTop: 2 }}>
+        <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingLeft: PAD.left, marginTop: 2 }}>
           {[...new Set((data.annotations ?? []).map((a) => a.type ?? 'default'))].map((type) => (
-            <View key={type} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View style={{ width: 8, height: 2, backgroundColor: EVENT_COLORS[type], borderRadius: 1 }} />
-              <Text style={{ color: colors.textMuted, fontSize: 9, textTransform: 'capitalize' }}>{type}</Text>
-            </View>
+            <div key={type} style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <div style={{ width: 8, height: 2, backgroundColor: EVENT_COLORS[type], borderRadius: 1 }} />
+              <span style={{ color: colors.textMuted, fontSize: 9, textTransform: 'capitalize' }}>{type}</span>
+            </div>
           ))}
           {data.secondaryLabel && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View style={{ width: 12, height: 2, backgroundColor: colors.gold, borderRadius: 1 }} />
-              <Text style={{ color: colors.textMuted, fontSize: 9 }}>{data.secondaryLabel}</Text>
-            </View>
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <div style={{ width: 12, height: 2, backgroundColor: colors.gold, borderRadius: 1 }} />
+              <span style={{ color: colors.textMuted, fontSize: 9 }}>{data.secondaryLabel}</span>
+            </div>
           )}
-        </View>
+        </div>
       )}
-    </View>
+    </div>
   );
 }

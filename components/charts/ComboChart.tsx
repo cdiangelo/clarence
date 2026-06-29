@@ -1,6 +1,4 @@
 import React from 'react';
-import { View, Text } from 'react-native';
-import Svg, { Rect, Path, Line, Circle, Text as SvgText, G } from 'react-native-svg';
 import { colors } from '../../constants/theme';
 import type { ComboData, ChartConfig } from '../../lib/charts';
 import { formatChartValue } from '../../lib/charts';
@@ -54,21 +52,21 @@ export function ComboChart({ data, config, width = 340 }: Props) {
   const lineTicks = Array.from({ length: tickCount }, (_, i) => lYMin + (lYRange * i) / (tickCount - 1));
 
   return (
-    <View>
-      <Svg width={width} height={height}>
+    <div>
+      <svg width={width} height={height}>
         {/* Grid from bar ticks */}
         {barTicks.map((t, i) => (
-          <G key={i}>
-            <Line x1={PADDING.left} y1={toBarY(t)} x2={PADDING.left + chartW} y2={toBarY(t)} stroke={colors.border} strokeWidth={0.5} />
-            <SvgText x={PADDING.left - 5} y={toBarY(t) + 4} textAnchor="end" fill={colors.textMuted} fontSize={9}>
+          <g key={i}>
+            <line x1={PADDING.left} y1={toBarY(t)} x2={PADDING.left + chartW} y2={toBarY(t)} stroke={colors.border} strokeWidth={0.5} />
+            <text x={PADDING.left - 5} y={toBarY(t) + 4} textAnchor="end" fill={colors.textMuted} fontSize={9}>
               {formatChartValue(t, fmt)}
-            </SvgText>
-          </G>
+            </text>
+          </g>
         ))}
 
         {/* Right Y axis (line) */}
         {lineTicks.map((t, i) => (
-          <SvgText
+          <text
             key={i}
             x={PADDING.left + chartW + 4}
             y={toLineY(t) + 4}
@@ -77,11 +75,11 @@ export function ComboChart({ data, config, width = 340 }: Props) {
             fontSize={9}
           >
             {formatChartValue(t, 'percent')}
-          </SvgText>
+          </text>
         ))}
 
         {/* Zero line */}
-        <Line x1={PADDING.left} y1={barZeroY} x2={PADDING.left + chartW} y2={barZeroY} stroke={colors.border} strokeWidth={1} />
+        <line x1={PADDING.left} y1={barZeroY} x2={PADDING.left + chartW} y2={barZeroY} stroke={colors.border} strokeWidth={1} />
 
         {/* Bars */}
         {barVals.map((v, i) => {
@@ -90,7 +88,7 @@ export function ComboChart({ data, config, width = 340 }: Props) {
           const barBot = toBarY(Math.min(v, 0));
           const bh = Math.max(1, barBot - barTop);
           return (
-            <Rect key={i} x={bx} y={barTop} width={barW} height={bh} fill={barColor} opacity={0.7} rx={2} />
+            <rect key={i} x={bx} y={barTop} width={barW} height={bh} fill={barColor} opacity={0.7} rx={2} />
           );
         })}
 
@@ -103,10 +101,10 @@ export function ComboChart({ data, config, width = 340 }: Props) {
           }));
           const pathD = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
           return (
-            <G key={si}>
-              <Path d={pathD} stroke={lc} strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-              {pts.map((p, i) => <Circle key={i} cx={p.x} cy={p.y} r={3} fill={lc} />)}
-            </G>
+            <g key={si}>
+              <path d={pathD} stroke={lc} strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r={3} fill={lc} />)}
+            </g>
           );
         })}
 
@@ -115,7 +113,7 @@ export function ComboChart({ data, config, width = 340 }: Props) {
           const step = Math.ceil(n / 8);
           if (i % step !== 0 && i !== n - 1) return null;
           return (
-            <SvgText
+            <text
               key={i}
               x={PADDING.left + i * spacing + spacing / 2}
               y={PADDING.top + chartH + 14}
@@ -124,24 +122,24 @@ export function ComboChart({ data, config, width = 340 }: Props) {
               fontSize={9}
             >
               {label}
-            </SvgText>
+            </text>
           );
         })}
-      </Svg>
+      </svg>
 
       {/* Legend */}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingLeft: PADDING.left, marginTop: 4 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: barColor, opacity: 0.7 }} />
-          <Text style={{ color: colors.textSecondary, fontSize: 10 }}>{data.bars.label}</Text>
-        </View>
+      <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingLeft: PADDING.left, marginTop: 4 }}>
+        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: barColor, opacity: 0.7 }} />
+          <span style={{ color: colors.textSecondary, fontSize: 10 }}>{data.bars.label}</span>
+        </div>
         {data.lines.map((l, i) => (
-          <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <View style={{ width: 16, height: 3, borderRadius: 2, backgroundColor: lineColors[i] }} />
-            <Text style={{ color: colors.textSecondary, fontSize: 10 }}>{l.label}</Text>
-          </View>
+          <div key={i} style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <div style={{ width: 16, height: 3, borderRadius: 2, backgroundColor: lineColors[i] }} />
+            <span style={{ color: colors.textSecondary, fontSize: 10 }}>{l.label}</span>
+          </div>
         ))}
-      </View>
-    </View>
+      </div>
+    </div>
   );
 }

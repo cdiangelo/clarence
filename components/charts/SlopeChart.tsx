@@ -1,7 +1,5 @@
 // Slope chart: compare before/after values across multiple entities — shows direction and magnitude of change
 import React from 'react';
-import { View, Text } from 'react-native';
-import Svg, { Line, Circle, Text as SvgText, G } from 'react-native-svg';
 import { colors } from '../../constants/theme';
 
 export interface SlopeItem {
@@ -40,15 +38,15 @@ export function SlopeChart({ data, width = 320, height = 260, formatValue }: Pro
   const fmt = formatValue ?? ((v: number) => v.toFixed(1));
 
   return (
-    <View>
-      <Svg width={width} height={height}>
+    <div>
+      <svg width={width} height={height}>
         {/* Column headers */}
-        <SvgText x={leftX} y={padTop - 14} textAnchor="middle" fill={colors.textSecondary} fontSize={11} fontWeight="600">
+        <text x={leftX} y={padTop - 14} textAnchor="middle" fill={colors.textSecondary} fontSize={11} fontWeight="600">
           {data.beforeLabel}
-        </SvgText>
-        <SvgText x={rightX} y={padTop - 14} textAnchor="middle" fill={colors.textSecondary} fontSize={11} fontWeight="600">
+        </text>
+        <text x={rightX} y={padTop - 14} textAnchor="middle" fill={colors.textSecondary} fontSize={11} fontWeight="600">
           {data.afterLabel}
-        </SvgText>
+        </text>
 
         {/* Slope lines */}
         {data.items.map((item, i) => {
@@ -59,8 +57,8 @@ export function SlopeChart({ data, width = 320, height = 260, formatValue }: Pro
           const lineColor = item.color ?? (isGain ? colors.gain : isLoss ? colors.loss : colors.textMuted);
 
           return (
-            <G key={i}>
-              <Line
+            <g key={i}>
+              <line
                 x1={leftX}
                 y1={y1}
                 x2={rightX}
@@ -70,28 +68,28 @@ export function SlopeChart({ data, width = 320, height = 260, formatValue }: Pro
                 opacity={0.85}
               />
               {/* Before dot + label */}
-              <Circle cx={leftX} cy={y1} r={4} fill={lineColor} />
-              <SvgText x={leftX - 8} y={y1 + 4} textAnchor="end" fill={lineColor} fontSize={10}>
+              <circle cx={leftX} cy={y1} r={4} fill={lineColor} />
+              <text x={leftX - 8} y={y1 + 4} textAnchor="end" fill={lineColor} fontSize={10}>
                 {fmt(item.before)}
-              </SvgText>
-              <SvgText x={leftX - 8} y={y1 - 6} textAnchor="end" fill={colors.textMuted} fontSize={9}>
+              </text>
+              <text x={leftX - 8} y={y1 - 6} textAnchor="end" fill={colors.textMuted} fontSize={9}>
                 {item.label}
-              </SvgText>
+              </text>
 
               {/* After dot + label */}
-              <Circle cx={rightX} cy={y2} r={4} fill={lineColor} />
-              <SvgText x={rightX + 8} y={y2 + 4} textAnchor="start" fill={lineColor} fontSize={10}>
+              <circle cx={rightX} cy={y2} r={4} fill={lineColor} />
+              <text x={rightX + 8} y={y2 + 4} textAnchor="start" fill={lineColor} fontSize={10}>
                 {fmt(item.after)}
-              </SvgText>
+              </text>
               {/* Change arrow indicator */}
-              <SvgText x={rightX + 8} y={y2 - 6} textAnchor="start" fill={colors.textMuted} fontSize={9}>
+              <text x={rightX + 8} y={y2 - 6} textAnchor="start" fill={colors.textMuted} fontSize={9}>
                 {isGain ? '▲' : isLoss ? '▼' : '—'}
                 {' '}{Math.abs(((item.after - item.before) / (item.before || 1)) * 100).toFixed(1)}%
-              </SvgText>
-            </G>
+              </text>
+            </g>
           );
         })}
-      </Svg>
-    </View>
+      </svg>
+    </div>
   );
 }

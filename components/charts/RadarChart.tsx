@@ -1,6 +1,4 @@
 import React from 'react';
-import { View, Text } from 'react-native';
-import Svg, { Path, Line, Polygon, Circle, Text as SvgText, G } from 'react-native-svg';
 import { colors } from '../../constants/theme';
 import type { RadarData, ChartConfig } from '../../lib/charts';
 import { radarVertices } from '../../lib/charts';
@@ -52,11 +50,11 @@ export function RadarChart({ data, config, size = 300 }: Props) {
   }
 
   return (
-    <View>
-      <Svg width={size} height={size + 20}>
+    <div>
+      <svg width={size} height={size + 20}>
         {/* Background rings */}
         {ringPolygons.map((ring, ri) => (
-          <Polygon
+          <polygon
             key={ri}
             points={polygonPoints(ring)}
             fill={ri % 2 === 0 ? `${colors.surface}80` : 'transparent'}
@@ -67,22 +65,22 @@ export function RadarChart({ data, config, size = 300 }: Props) {
 
         {/* Axis spokes */}
         {outerVertices.map((v, i) => (
-          <Line key={i} x1={cx} y1={cy} x2={v.x} y2={v.y} stroke={colors.border} strokeWidth={0.5} />
+          <line key={i} x1={cx} y1={cy} x2={v.x} y2={v.y} stroke={colors.border} strokeWidth={0.5} />
         ))}
 
         {/* Data polygons */}
         {dataPolygons.map(({ pts, color }, si) => (
-          <G key={si}>
-            <Polygon
+          <g key={si}>
+            <polygon
               points={polygonPoints(pts)}
               fill={`${color}30`}
               stroke={color}
               strokeWidth={1.5}
             />
             {pts.map((p, i) => (
-              <Circle key={i} cx={p.x} cy={p.y} r={3} fill={color} />
+              <circle key={i} cx={p.x} cy={p.y} r={3} fill={color} />
             ))}
-          </G>
+          </g>
         ))}
 
         {/* Axis labels */}
@@ -93,7 +91,7 @@ export function RadarChart({ data, config, size = 300 }: Props) {
           const dx = ov.x - cx;
           const anchor = Math.abs(dx) < 10 ? 'middle' : dx > 0 ? 'start' : 'end';
           return (
-            <SvgText
+            <text
               key={i}
               x={lv.x}
               y={lv.y + 4}
@@ -103,13 +101,13 @@ export function RadarChart({ data, config, size = 300 }: Props) {
               fontWeight="500"
             >
               {axis}
-            </SvgText>
+            </text>
           );
         })}
 
         {/* Ring value labels on first spoke */}
         {ringPolygons.map((ring, ri) => (
-          <SvgText
+          <text
             key={ri}
             x={ring[0].x + 4}
             y={ring[0].y - 2}
@@ -117,21 +115,21 @@ export function RadarChart({ data, config, size = 300 }: Props) {
             fontSize={8}
           >
             {Math.round((maxVal * (ri + 1)) / ringCount)}
-          </SvgText>
+          </text>
         ))}
-      </Svg>
+      </svg>
 
       {/* Legend */}
       {data.datasets.length > 1 && (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginTop: 4 }}>
+        <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginTop: 4 }}>
           {data.datasets.map((ds, i) => (
-            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: ds.color ?? colors.chart[i % colors.chart.length] }} />
-              <Text style={{ color: colors.textSecondary, fontSize: 10 }}>{ds.label}</Text>
-            </View>
+            <div key={i} style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: ds.color ?? colors.chart[i % colors.chart.length] }} />
+              <span style={{ color: colors.textSecondary, fontSize: 10 }}>{ds.label}</span>
+            </div>
           ))}
-        </View>
+        </div>
       )}
-    </View>
+    </div>
   );
 }

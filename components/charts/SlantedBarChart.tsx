@@ -1,6 +1,4 @@
 import React from 'react';
-import { View, Text } from 'react-native';
-import Svg, { Polygon, Line, Text as SvgText, G } from 'react-native-svg';
 import { colors } from '../../constants/theme';
 import type { SlantedBarData, ChartConfig } from '../../lib/charts';
 import { formatChartValue } from '../../lib/charts';
@@ -50,14 +48,14 @@ export function SlantedBarChart({ data, config, width = 340 }: Props) {
   const gridVals = Array.from({ length: GRID_LINES + 1 }, (_, i) => (maxVal * i) / GRID_LINES);
 
   return (
-    <View>
-      <Svg width={width} height={height}>
+    <div>
+      <svg width={width} height={height}>
         {/* Grid lines */}
         {gridVals.map((v, i) => {
           const y = PAD_TOP + chartH - (v / maxVal) * chartH;
           return (
-            <G key={i}>
-              <Line
+            <g key={i}>
+              <line
                 x1={PAD_LEFT}
                 y1={y}
                 x2={PAD_LEFT + chartW}
@@ -66,10 +64,10 @@ export function SlantedBarChart({ data, config, width = 340 }: Props) {
                 strokeWidth={i === 0 ? 1 : 0.5}
                 strokeDasharray={i === 0 ? undefined : '3,4'}
               />
-              <SvgText x={PAD_LEFT - 4} y={y + 4} textAnchor="end" fill={colors.textMuted} fontSize={8}>
+              <text x={PAD_LEFT - 4} y={y + 4} textAnchor="end" fill={colors.textMuted} fontSize={8}>
                 {formatChartValue(v, config?.formatY)}
-              </SvgText>
-            </G>
+              </text>
+            </g>
           );
         })}
 
@@ -79,7 +77,7 @@ export function SlantedBarChart({ data, config, width = 340 }: Props) {
           const yBottom = PAD_TOP + chartH;
 
           return (
-            <G key={li}>
+            <g key={li}>
               {data.datasets.map((ds, si) => {
                 const barX = groupX + si * barSlotW;
                 const val = ds.values[li] ?? 0;
@@ -100,10 +98,10 @@ export function SlantedBarChart({ data, config, width = 340 }: Props) {
                 const labelX = barX + barW / 2 + s / 2;
 
                 return (
-                  <G key={si}>
-                    <Polygon points={pts} fill={`${c}CC`} stroke={c} strokeWidth={0.8} />
+                  <g key={si}>
+                    <polygon points={pts} fill={`${c}CC`} stroke={c} strokeWidth={0.8} />
                     {config?.showValues && barH > 16 && (
-                      <SvgText
+                      <text
                         x={labelX}
                         y={yTop - 3}
                         textAnchor="middle"
@@ -112,14 +110,14 @@ export function SlantedBarChart({ data, config, width = 340 }: Props) {
                         fontWeight="600"
                       >
                         {formatChartValue(val, config?.formatY)}
-                      </SvgText>
+                      </text>
                     )}
-                  </G>
+                  </g>
                 );
               })}
 
               {/* X-axis label */}
-              <SvgText
+              <text
                 x={groupX + (groupW - groupGap) / 2}
                 y={yBottom + 14}
                 textAnchor="middle"
@@ -127,13 +125,13 @@ export function SlantedBarChart({ data, config, width = 340 }: Props) {
                 fontSize={9}
               >
                 {label.length > 8 ? `${label.slice(0, 7)}…` : label}
-              </SvgText>
-            </G>
+              </text>
+            </g>
           );
         })}
 
         {/* Y-axis line */}
-        <Line
+        <line
           x1={PAD_LEFT}
           y1={PAD_TOP}
           x2={PAD_LEFT}
@@ -141,26 +139,26 @@ export function SlantedBarChart({ data, config, width = 340 }: Props) {
           stroke={colors.borderLight}
           strokeWidth={1}
         />
-      </Svg>
+      </svg>
 
       {/* Legend */}
       {seriesCount > 1 && (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginTop: 4 }}>
+        <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginTop: 4 }}>
           {data.datasets.map((ds, i) => (
-            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View
+            <div key={i} style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <div
                 style={{
                   width: 14,
                   height: 8,
                   backgroundColor: ds.color ?? palette[i % palette.length],
-                  transform: [{ skewX: `-${slantDeg}deg` }],
+                  transform: `skewX(-${slantDeg}deg)`,
                 }}
               />
-              <Text style={{ color: colors.textSecondary, fontSize: 10 }}>{ds.label}</Text>
-            </View>
+              <span style={{ color: colors.textSecondary, fontSize: 10 }}>{ds.label}</span>
+            </div>
           ))}
-        </View>
+        </div>
       )}
-    </View>
+    </div>
   );
 }

@@ -1,26 +1,14 @@
 import React from 'react';
-import { View, Text } from 'react-native';
-import { radius } from '../../constants/theme';
 
 interface BadgeProps {
   label: string;
-  color: string;
+  className?: string;
 }
 
-export function Badge({ label, color }: BadgeProps) {
+export function Badge({ label, className = '' }: BadgeProps) {
   return (
-    <View
-      style={{
-        backgroundColor: `${color}20`,
-        borderRadius: radius.full,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        alignSelf: 'flex-start',
-      }}
-    >
-      <Text style={{ color, fontSize: 11, fontWeight: '600', letterSpacing: 0.3 }}>
-        {label.toUpperCase()}
-      </Text>
-    </View>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold tracking-wide ${className}`}>
+      {label.toUpperCase()}
+    </span>
   );
 }

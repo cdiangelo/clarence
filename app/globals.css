@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  height: 100%;
+  background-color: #060A14;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #1A2335; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #233045; }
+
+/* Markdown prose within chat */
+.prose-chat p { margin-bottom: 0.4em; }
+.prose-chat p:last-child { margin-bottom: 0; }
+
+/* Chart containers */
+.chart-wrap { overflow-x: auto; }
+.chart-wrap svg { display: block; }
+
+/* Textarea auto-resize */
+textarea { field-sizing: content; }

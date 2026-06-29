@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export type ThesisStage = 'developing' | 'active' | 'testing' | 'watching' | 'closed';
 export type ThesisDirection = 'long' | 'short' | 'neutral';
@@ -34,6 +35,7 @@ export interface Thesis {
 interface ResearchStore {
   theses: Thesis[];
   saveThesis: (t: Omit<Thesis, 'id' | 'createdAt' | 'updatedAt'>) => string;
+  insertThesis: (thesis: Thesis) => void;
   updateThesis: (id: string, updates: Partial<Omit<Thesis, 'id' | 'createdAt'>>) => void;
   deleteThesis: (id: string) => void;
   getThesis: (id: string) => Thesis | undefined;
@@ -44,30 +46,40 @@ function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-export const useResearchStore = create<ResearchStore>((set, get) => ({
-  theses: [],
+export const useResearchStore = create<ResearchStore>()(
+  persist(
+    (set, get) => ({
+      theses: [],
 
-  saveThesis: (t) => {
-    const id = uid();
-    const now = new Date().toISOString();
-    set((s) => ({
-      theses: [...s.theses, { ...t, id, createdAt: now, updatedAt: now }],
-    }));
-    return id;
-  },
+      saveThesis: (t) => {
+        const id = uid();
+        const now = new Date().toISOString();
+        set((s) => ({ theses: [...s.theses, { ...t, id, createdAt: now, updatedAt: now }] }));
+        return id;
+      },
 
-  updateThesis: (id, updates) =>
-    set((s) => ({
-      theses: s.theses.map((t) =>
-        t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t,
-      ),
-    })),
+      insertThesis: (thesis) =>
+        set((s) => ({
+          theses: s.theses.some((t) => t.id === thesis.id)
+            ? s.theses
+            : [...s.theses, thesis],
+        })),
 
-  deleteThesis: (id) =>
-    set((s) => ({ theses: s.theses.filter((t) => t.id !== id) })),
+      updateThesis: (id, updates) =>
+        set((s) => ({
+          theses: s.theses.map((t) =>
+            t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t,
+          ),
+        })),
 
-  getThesis: (id) => get().theses.find((t) => t.id === id),
+      deleteThesis: (id) =>
+        set((s) => ({ theses: s.theses.filter((t) => t.id !== id) })),
 
-  getByTicker: (ticker) =>
-    get().theses.filter((t) => t.ticker?.toUpperCase() === ticker.toUpperCase()),
-}));
+      getThesis: (id) => get().theses.find((t) => t.id === id),
+
+      getByTicker: (ticker) =>
+        get().theses.filter((t) => t.ticker?.toUpperCase() === ticker.toUpperCase()),
+    }),
+    { name: 'clarence-research' },
+  ),
+);

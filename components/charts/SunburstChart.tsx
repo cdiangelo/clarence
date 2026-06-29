@@ -1,6 +1,4 @@
 import React from 'react';
-import { View, Text } from 'react-native';
-import Svg, { Path, Circle, Text as SvgText, G } from 'react-native-svg';
 import { colors } from '../../constants/theme';
 import type { SunburstData } from '../../lib/charts';
 
@@ -89,13 +87,13 @@ export function SunburstChart({ data, size = 300 }: Props) {
   const level1 = nodes.filter((n) => n.level === 1);
 
   return (
-    <View>
-      <Svg width={size} height={size}>
+    <div>
+      <svg width={size} height={size}>
         {/* Center circle */}
-        <Circle cx={cx} cy={cy} r={centerR - 2} fill={`${palette[0]}30`} stroke={palette[0]} strokeWidth={1.5} />
-        <SvgText x={cx} y={cy + 4} textAnchor="middle" fill={colors.text} fontSize={9} fontWeight="600">
+        <circle cx={cx} cy={cy} r={centerR - 2} fill={`${palette[0]}30`} stroke={palette[0]} strokeWidth={1.5} />
+        <text x={cx} y={cy + 4} textAnchor="middle" fill={colors.text} fontSize={9} fontWeight="600">
           {data.root.name.length > 9 ? `${data.root.name.slice(0, 8)}…` : data.root.name}
-        </SvgText>
+        </text>
 
         {nodes.map((node, i) => {
           const { inner, outer } = getRadii(node.level);
@@ -108,15 +106,15 @@ export function SunburstChart({ data, size = 300 }: Props) {
           const showLabel = span > 0.3 && outer - inner > 14;
 
           return (
-            <G key={i}>
-              <Path
+            <g key={i}>
+              <path
                 d={annularPath(cx, cy, inner, outer, node.startAngle, node.endAngle)}
                 fill={`${node.color}85`}
                 stroke={colors.bg}
                 strokeWidth={1.2}
               />
               {showLabel && (
-                <SvgText
+                <text
                   x={lx}
                   y={ly + 3}
                   textAnchor="middle"
@@ -125,23 +123,23 @@ export function SunburstChart({ data, size = 300 }: Props) {
                   fontWeight="500"
                 >
                   {node.name.length > 11 ? `${node.name.slice(0, 10)}…` : node.name}
-                </SvgText>
+                </text>
               )}
-            </G>
+            </g>
           );
         })}
-      </Svg>
+      </svg>
 
       {level1.length > 0 && level1.length <= 8 && (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 6 }}>
+        <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 6 }}>
           {level1.map((n, i) => (
-            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: n.color }} />
-              <Text style={{ color: colors.textSecondary, fontSize: 10 }}>{n.name}</Text>
-            </View>
+            <div key={i} style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <div style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: n.color }} />
+              <span style={{ color: colors.textSecondary, fontSize: 10 }}>{n.name}</span>
+            </div>
           ))}
-        </View>
+        </div>
       )}
-    </View>
+    </div>
   );
 }

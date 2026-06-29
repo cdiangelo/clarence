@@ -1,6 +1,4 @@
 import React from 'react';
-import { View, Text } from 'react-native';
-import Svg, { Path, Line, Circle, Text as SvgText, G } from 'react-native-svg';
 import { colors } from '../../constants/theme';
 import type { LineData, ChartConfig } from '../../lib/charts';
 import { formatChartValue } from '../../lib/charts';
@@ -40,12 +38,12 @@ export function LineChart({ data, config, width = 320 }: Props) {
   const labelStep = Math.ceil(n / 8);
 
   return (
-    <View>
-      <Svg width={width} height={height}>
+    <div>
+      <svg width={width} height={height}>
         {/* Grid */}
         {ticks.map((t, i) => (
-          <G key={i}>
-            <Line
+          <g key={i}>
+            <line
               x1={PADDING.left}
               y1={toY(t)}
               x2={PADDING.left + chartW}
@@ -53,10 +51,10 @@ export function LineChart({ data, config, width = 320 }: Props) {
               stroke={colors.border}
               strokeWidth={0.5}
             />
-            <SvgText x={PADDING.left - 6} y={toY(t) + 4} textAnchor="end" fill={colors.textMuted} fontSize={9}>
+            <text x={PADDING.left - 6} y={toY(t) + 4} textAnchor="end" fill={colors.textMuted} fontSize={9}>
               {formatChartValue(t, fmt)}
-            </SvgText>
-          </G>
+            </text>
+          </g>
         ))}
 
         {/* Lines */}
@@ -66,13 +64,13 @@ export function LineChart({ data, config, width = 320 }: Props) {
           const pathD = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
 
           return (
-            <G key={si}>
-              <Path d={pathD} stroke={lineColor} strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <g key={si}>
+              <path d={pathD} stroke={lineColor} strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
               {pts.length <= 20 &&
                 pts.map((p, i) => (
-                  <Circle key={i} cx={p.x} cy={p.y} r={3} fill={lineColor} />
+                  <circle key={i} cx={p.x} cy={p.y} r={3} fill={lineColor} />
                 ))}
-            </G>
+            </g>
           );
         })}
 
@@ -80,7 +78,7 @@ export function LineChart({ data, config, width = 320 }: Props) {
         {data.labels.map((label, i) => {
           if (i % labelStep !== 0 && i !== n - 1) return null;
           return (
-            <SvgText
+            <text
               key={i}
               x={toX(i)}
               y={PADDING.top + chartH + 14}
@@ -89,21 +87,21 @@ export function LineChart({ data, config, width = 320 }: Props) {
               fontSize={9}
             >
               {label}
-            </SvgText>
+            </text>
           );
         })}
-      </Svg>
+      </svg>
 
       {data.datasets.length > 1 && (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingLeft: PADDING.left, marginTop: 4 }}>
+        <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingLeft: PADDING.left, marginTop: 4 }}>
           {data.datasets.map((ds, i) => (
-            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View style={{ width: 16, height: 3, borderRadius: 2, backgroundColor: ds.color ?? colors.chart[i % colors.chart.length] }} />
-              <Text style={{ color: colors.textSecondary, fontSize: 10 }}>{ds.label}</Text>
-            </View>
+            <div key={i} style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <div style={{ width: 16, height: 3, borderRadius: 2, backgroundColor: ds.color ?? colors.chart[i % colors.chart.length] }} />
+              <span style={{ color: colors.textSecondary, fontSize: 10 }}>{ds.label}</span>
+            </div>
           ))}
-        </View>
+        </div>
       )}
-    </View>
+    </div>
   );
 }
