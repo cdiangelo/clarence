@@ -2,13 +2,13 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth';
-import { useRoundsStore, type Round } from '@/stores/rounds';
+import { useRoundsStore, type Round, type RoundType } from '@/stores/rounds';
 import { AppShell } from '@/components/layout/AppShell';
 import { QuickLog, type InitialCourse, type InitialRound } from '@/components/round/QuickLog';
 
 interface SaveData {
   courseName: string; courseId?: string; courseRating?: number; slopeRating?: number;
-  date: string; holes: 9 | 18; score: number; putts?: number; notes?: string;
+  date: string; holes: 9 | 18; score: number; roundType: RoundType; putts?: number; notes?: string;
 }
 
 function LogPageInner() {
@@ -84,6 +84,7 @@ function LogPageInner() {
         date: editingRound.date,
         holes: editingRound.holes,
         score: editingRound.score,
+        roundType: editingRound.roundType,
         courseRating: editingRound.courseRating,
         slopeRating: editingRound.slopeRating,
         putts: editingRound.putts,
@@ -134,7 +135,14 @@ function LogPageInner() {
                   className="w-full text-left bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3 hover:border-turf/50 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-ink truncate">{r.courseName}</div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="text-sm font-semibold text-ink truncate">{r.courseName}</div>
+                      {r.roundType === 'scramble' && (
+                        <span className="flex-shrink-0 text-[8px] font-display tracking-wider text-gold bg-gold/10 px-1.5 py-0.5 rounded">
+                          SCRAMBLE
+                        </span>
+                      )}
+                    </div>
                     <div className="text-[10px] text-ink-muted mt-0.5">
                       {new Date(r.date + 'T12:00:00').toLocaleDateString('en-US', {
                         weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',

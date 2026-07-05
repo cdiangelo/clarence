@@ -14,12 +14,15 @@ export interface InitialCourse {
   verified?: boolean;
 }
 
+export type RoundType = 'solo' | 'scramble';
+
 export interface InitialRound {
   courseId?: string;
   courseName: string;
   date: string;
   holes: 9 | 18;
   score: number;
+  roundType: RoundType;
   courseRating?: number;
   slopeRating?: number;
   putts?: number;
@@ -53,6 +56,7 @@ interface Props {
     date: string;
     holes: 9 | 18;
     score: number;
+    roundType: RoundType;
     putts?: number;
     notes?: string;
   }) => Promise<void>;
@@ -89,6 +93,7 @@ export function QuickLog({ initialCourse, initialRound, onSave, onCancel }: Prop
   // Round settings
   const [date, setDate] = useState(initialRound?.date ?? todayISO());
   const [holes, setHoles] = useState<9 | 18>(initialRound?.holes ?? initialCourse?.holes ?? 18);
+  const [roundType, setRoundType] = useState<RoundType>(initialRound?.roundType ?? 'solo');
 
   // Scoring mode — by-hole entry is only offered when creating a new round;
   // edited rounds only ever have an aggregate score to work with
@@ -229,6 +234,7 @@ export function QuickLog({ initialCourse, initialRound, onSave, onCancel }: Prop
         date,
         holes,
         score: finalScore,
+        roundType,
         putts: finalPutts,
         notes: notes.trim() || undefined,
       });
@@ -363,6 +369,38 @@ export function QuickLog({ initialCourse, initialRound, onSave, onCancel }: Prop
               </button>
             ))}
           </div>
+        </div>
+
+        {/* ── Round type ── */}
+        <div>
+          <label className="block text-xs font-semibold text-ink-soft mb-1.5">Round type</label>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setRoundType('solo')}
+              className={`flex-1 py-2 rounded-lg border text-sm font-semibold transition-colors ${
+                roundType === 'solo'
+                  ? 'border-turf bg-turf-wash text-turf'
+                  : 'border-border text-ink-soft hover:border-turf/50'
+              }`}
+            >
+              Solo
+            </button>
+            <button
+              onClick={() => setRoundType('scramble')}
+              className={`flex-1 py-2 rounded-lg border text-sm font-semibold transition-colors ${
+                roundType === 'scramble'
+                  ? 'border-gold bg-gold/10 text-gold'
+                  : 'border-border text-ink-soft hover:border-gold/50'
+              }`}
+            >
+              Scramble
+            </button>
+          </div>
+          {roundType === 'scramble' && (
+            <div className="text-[10px] text-ink-muted mt-1">
+              Scramble/team rounds aren&rsquo;t used for your handicap index (per WHS rules) but still count toward your log.
+            </div>
+          )}
         </div>
 
         {/* ── Scoring mode ── */}

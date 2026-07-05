@@ -11,6 +11,7 @@ export interface GolfContext {
     date: string;
     holes: number;
     score: number;
+    roundType?: 'solo' | 'scramble';
     courseRating?: number;
     slopeRating?: number;
     putts?: number;
@@ -35,7 +36,7 @@ export function buildGolfSystemPrompt(ctx: GolfContext): string {
 
   const roundsSection = ctx.recentRounds.length > 0
     ? ctx.recentRounds.map((r) =>
-        `• ${r.date} @ ${r.courseName}: ${r.score} (${r.holes}H)${r.courseRating ? ` | CR/SR: ${r.courseRating}/${r.slopeRating}` : ''}${r.putts ? ` | ${r.putts} putts` : ''}`
+        `• ${r.date} @ ${r.courseName}: ${r.score} (${r.holes}H)${r.roundType === 'scramble' ? ' [SCRAMBLE — not handicap-eligible]' : ''}${r.courseRating ? ` | CR/SR: ${r.courseRating}/${r.slopeRating}` : ''}${r.putts ? ` | ${r.putts} putts` : ''}`
       ).join('\n')
     : 'No rounds logged yet.';
 

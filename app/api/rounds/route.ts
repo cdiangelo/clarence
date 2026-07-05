@@ -2,19 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { query } from '@/db/client';
 
+type RoundType = 'solo' | 'scramble';
+
+function normalizeRoundType(v: unknown): RoundType {
+  return v === 'scramble' ? 'scramble' : 'solo';
+}
+
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const rounds = await query<{
     id: string; course_id: string | null; course_name: string; date: string;
-    holes: number; score: number; course_rating: number | null; slope_rating: number | null;
+    holes: number; score: number; round_type: string; course_rating: number | null; slope_rating: number | null;
     putts: number | null; fir: number | null; fir_total: number | null; gir: number | null; notes: string | null;
   }>(
     // to_char forces a plain 'YYYY-MM-DD' string — the pg driver otherwise
     // returns DATE columns as full Date objects that serialize to a full
     // ISO timestamp, which breaks any client code that appends a time part
-    `SELECT id, course_id, course_name, to_char(date, 'YYYY-MM-DD') AS date, holes, score,
+    `SELECT id, course_id, course_name, to_char(date, 'YYYY-MM-DD') AS date, holes, score, round_type,
             course_rating, slope_rating, putts, fir, fir_total, gir, notes
      FROM rounds WHERE user_id = $1 ORDER BY date DESC`,
     [session.userId],
@@ -28,6 +34,7 @@ export async function GET() {
       date: r.date,
       holes: r.holes as 9 | 18,
       score: r.score,
+      roundType: normalizeRoundType(r.round_type),
       courseRating: r.course_rating ?? undefined,
       slopeRating: r.slope_rating ?? undefined,
       putts: r.putts ?? undefined,
@@ -45,6 +52,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json() as {
     courseName: string; courseId?: string; holes: 9 | 18; score: number;
+    roundType?: RoundType;
     courseRating?: number; slopeRating?: number; putts?: number;
     fir?: number; firTotal?: number; gir?: number; notes?: string;
     date?: string;
@@ -55,18 +63,19 @@ export async function POST(req: NextRequest) {
   }
 
   const date = body.date ?? new Date().toISOString().slice(0, 10);
+  const roundType = normalizeRoundType(body.roundType);
 
   try {
     const rows = await query<{
       id: string; course_id: string | null; course_name: string; date: string; holes: number; score: number;
-      course_rating: number | null; slope_rating: number | null; putts: number | null; notes: string | null;
+      round_type: string; course_rating: number | null; slope_rating: number | null; putts: number | null; notes: string | null;
     }>(
-      `INSERT INTO rounds (user_id, course_id, course_name, date, holes, score, course_rating, slope_rating, putts, fir, fir_total, gir, notes)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-       RETURNING id, course_id, course_name, to_char(date, 'YYYY-MM-DD') AS date, holes, score, course_rating, slope_rating, putts, notes`,
+      `INSERT INTO rounds (user_id, course_id, course_name, date, holes, score, round_type, course_rating, slope_rating, putts, fir, fir_total, gir, notes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+       RETURNING id, course_id, course_name, to_char(date, 'YYYY-MM-DD') AS date, holes, score, round_type, course_rating, slope_rating, putts, notes`,
       [
         session.userId, body.courseId ?? null, body.courseName, date,
-        body.holes, body.score, body.courseRating ?? null, body.slopeRating ?? null,
+        body.holes, body.score, roundType, body.courseRating ?? null, body.slopeRating ?? null,
         body.putts ?? null, body.fir ?? null, body.firTotal ?? null, body.gir ?? null,
         body.notes ?? null,
       ],
@@ -81,6 +90,7 @@ export async function POST(req: NextRequest) {
         date: row.date,
         holes: row.holes as 9 | 18,
         score: row.score,
+        roundType: normalizeRoundType(row.round_type),
         courseRating: row.course_rating ?? undefined,
         slopeRating: row.slope_rating ?? undefined,
         putts: row.putts ?? undefined,

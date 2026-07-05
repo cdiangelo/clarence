@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+export type RoundType = 'solo' | 'scramble';
+
 export interface Round {
   id: string;
   courseId?: string;
@@ -7,6 +9,7 @@ export interface Round {
   date: string;             // ISO date
   holes: 9 | 18;
   score: number;
+  roundType: RoundType;
   courseRating?: number;
   slopeRating?: number;
   putts?: number;

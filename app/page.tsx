@@ -1,18 +1,27 @@
 'use client';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth';
-import { useRoundsStore } from '@/stores/rounds';
+import { useRoundsStore, type RoundType } from '@/stores/rounds';
 import { AppShell } from '@/components/layout/AppShell';
 import { ComboChart } from '@/components/charts/ComboChart';
 import { calcHandicapIndex, calcSeasonStats } from '@/lib/handicap';
 import type { RoundInput } from '@/lib/handicap';
 import Link from 'next/link';
 
+type Filter = 'all' | RoundType;
+
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'solo', label: 'Solo' },
+  { key: 'scramble', label: 'Scramble' },
+];
+
 export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { rounds, loaded, load } = useRoundsStore();
+  const [filter, setFilter] = useState<Filter>('all');
 
   useEffect(() => {
     if (!user) { router.replace('/auth'); return; }
@@ -21,16 +30,21 @@ export default function DashboardPage() {
 
   if (!user) return null;
 
-  const roundInputs: RoundInput[] = rounds
+  const filteredRounds = filter === 'all' ? rounds : rounds.filter((r) => r.roundType === filter);
+
+  const roundInputs: RoundInput[] = filteredRounds
     .filter((r) => r.courseRating && r.slopeRating)
     .map((r) => ({
       id: r.id, date: r.date, score: r.score, holes: r.holes,
       courseRating: r.courseRating!, slopeRating: r.slopeRating!,
     }));
 
+  // calcHandicapIndex already enforces a 3-round minimum on whatever
+  // population it's given — filtering by round type before calling it
+  // means the minimum is naturally scoped to the selected bucket
   const hcp = calcHandicapIndex(roundInputs);
   const season = calcSeasonStats(roundInputs);
-  const recent = rounds.slice(0, 6);
+  const recent = filteredRounds.slice(0, 6);
 
   // Build combo chart data (last 12 months)
   const chartData = season.monthlyData.map((m) => ({
@@ -43,6 +57,25 @@ export default function DashboardPage() {
   return (
     <AppShell>
       <div className="px-4 py-5 space-y-5 pb-4">
+        {/* Round type filter */}
+        <div className="flex gap-1.5">
+          {FILTERS.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`flex-1 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
+                filter === key
+                  ? key === 'scramble'
+                    ? 'border-gold bg-gold/10 text-gold'
+                    : 'border-turf bg-turf-wash text-turf'
+                  : 'border-border text-ink-soft hover:border-turf/50'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         {/* Handicap hero */}
         <div className="bg-turf text-white rounded-2xl px-5 py-4">
           <div className="text-[10px] font-display tracking-widest opacity-70 mb-1">HANDICAP INDEX</div>
@@ -57,8 +90,13 @@ export default function DashboardPage() {
             )}
           </div>
           <div className="text-[10px] opacity-60 mt-1 font-display tracking-wider">
-            {hcp.roundsUsed > 0 ? `BEST ${hcp.roundsUsed} OF ${Math.min(rounds.length, 20)} DIFFERENTIALS` : 'WORLD HANDICAP SYSTEM'}
+            {hcp.roundsUsed > 0 ? `BEST ${hcp.roundsUsed} OF ${Math.min(filteredRounds.length, 20)} DIFFERENTIALS` : 'WORLD HANDICAP SYSTEM'}
           </div>
+          {filter === 'scramble' && (
+            <div className="text-[10px] opacity-60 mt-1.5">
+              Scramble/team rounds aren&rsquo;t WHS-eligible — this is a reference number only, not an official index.
+            </div>
+          )}
         </div>
 
         {/* Stats row */}
@@ -91,7 +129,9 @@ export default function DashboardPage() {
           </div>
           {recent.length === 0 ? (
             <div className="bg-card border border-border border-dashed rounded-xl px-4 py-6 text-center">
-              <p className="text-sm text-ink-soft mb-3">No rounds logged yet.</p>
+              <p className="text-sm text-ink-soft mb-3">
+                {filter === 'all' ? 'No rounds logged yet.' : `No ${filter} rounds logged yet.`}
+              </p>
               <Link href="/log" className="inline-block bg-turf text-white font-display tracking-wider text-xs px-4 py-2 rounded-lg">
                 LOG YOUR FIRST ROUND
               </Link>
@@ -105,9 +145,16 @@ export default function DashboardPage() {
                 return (
                   <div key={r.id} className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-ink truncate">{r.courseName}</div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="text-sm font-semibold text-ink truncate">{r.courseName}</div>
+                        {r.roundType === 'scramble' && (
+                          <span className="flex-shrink-0 text-[8px] font-display tracking-wider text-gold bg-gold/10 px-1.5 py-0.5 rounded">
+                            SCRAMBLE
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[10px] text-ink-muted mt-0.5">
-                        {new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {new Date(r.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         {' · '}{r.holes}H
                       </div>
                     </div>

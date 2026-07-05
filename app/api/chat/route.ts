@@ -24,10 +24,12 @@ export async function POST(req: NextRequest) {
   // Build context from DB
   const [roundRows, clubRows, userRow] = await Promise.all([
     query<{
-      id: string; course_name: string; date: string; holes: number; score: number;
+      id: string; course_name: string; date: string; holes: number; score: number; round_type: string;
       course_rating: number | null; slope_rating: number | null; putts: number | null;
     }>(
-      'SELECT id, course_name, date, holes, score, course_rating, slope_rating, putts FROM rounds WHERE user_id = $1 ORDER BY date DESC LIMIT 50',
+      `SELECT id, course_name, to_char(date, 'YYYY-MM-DD') AS date, holes, score, round_type,
+              course_rating, slope_rating, putts
+       FROM rounds WHERE user_id = $1 ORDER BY date DESC LIMIT 50`,
       [session.userId],
     ).catch(() => []),
     query<{ slot: string; carry: number | null; carry_is_estimate: boolean; brand: string | null; model: string | null }>(
@@ -43,8 +45,9 @@ export async function POST(req: NextRequest) {
     ).then((r) => r[0]).catch(() => null),
   ]);
 
+  // Scramble/team rounds are never WHS-eligible for a handicap index
   const roundsForHcp = roundRows
-    .filter((r) => r.course_rating != null && r.slope_rating != null)
+    .filter((r) => r.course_rating != null && r.slope_rating != null && r.round_type !== 'scramble')
     .map((r) => ({
       id: r.id, courseName: r.course_name, date: r.date, holes: r.holes as 9 | 18,
       score: r.score, courseRating: r.course_rating!, slopeRating: r.slope_rating!,
@@ -63,7 +66,8 @@ export async function POST(req: NextRequest) {
     },
     recentRounds: roundRows.slice(0, 10).map((r) => ({
       courseName: r.course_name, date: r.date, holes: r.holes as 9 | 18,
-      score: r.score, courseRating: r.course_rating ?? undefined,
+      score: r.score, roundType: r.round_type === 'scramble' ? 'scramble' as const : 'solo' as const,
+      courseRating: r.course_rating ?? undefined,
       slopeRating: r.slope_rating ?? undefined, putts: r.putts ?? undefined,
     })),
     bag: clubRows.map((c) => ({
@@ -174,9 +178,11 @@ export async function POST(req: NextRequest) {
         return JSON.stringify({
           rounds: roundRows.slice(0, limit).map((r) => ({
             courseName: r.course_name, date: r.date, holes: r.holes,
+            roundType: r.round_type === 'scramble' ? 'scramble' : 'solo',
             score: r.score, courseRating: r.course_rating, slopeRating: r.slope_rating, putts: r.putts,
           })),
           handicapIndex: hcpResult.handicapIndex,
+          handicapNote: 'handicapIndex excludes scramble/team rounds per WHS rules',
           seasonStats,
         });
       }

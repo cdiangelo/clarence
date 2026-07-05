@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS rounds (
   date        DATE NOT NULL,
   holes       INT NOT NULL DEFAULT 18,   -- 9 or 18
   score       INT NOT NULL,
+  round_type  TEXT NOT NULL DEFAULT 'solo', -- solo | scramble — WHS only allows solo stroke play for handicap
   course_rating DOUBLE PRECISION,
   slope_rating  INT,
   putts       INT,
@@ -89,6 +90,8 @@ CREATE TABLE IF NOT EXISTS rounds (
 
 -- Drop the FK constraint if it already exists on a previously-migrated database
 ALTER TABLE rounds DROP CONSTRAINT IF EXISTS rounds_course_id_fkey;
+-- Add round_type to a previously-migrated database that predates this column
+ALTER TABLE rounds ADD COLUMN IF NOT EXISTS round_type TEXT NOT NULL DEFAULT 'solo';
 
 -- ─── ROUND HOLES ──────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS round_holes (
