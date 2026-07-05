@@ -98,18 +98,27 @@ export function buildDifferentials(rounds: RoundInput[]): ScoreDifferential[] {
 
 // Main WHS handicap calculation
 export function calcHandicapIndex(rounds: RoundInput[]): HandicapResult {
-  if (rounds.length < 3) {
-    return { handicapIndex: null, roundsUsed: 0, differentials: [], smallSampleAdj: 0, message: 'Need at least 3 rounds to establish a handicap index.' };
+  // Gate on usable DIFFERENTIALS, not raw round count — a lone unpaired
+  // 9-hole round contributes a round but not a differential until it's
+  // paired with a second 9-hole round, so raw count can overstate what's
+  // actually usable
+  const differentials = buildDifferentials(rounds);
+  if (differentials.length < 3) {
+    const hasUnpairedNine = rounds.some((r) => r.holes === 9) && rounds.filter((r) => r.holes === 9).length % 2 === 1;
+    const message = hasUnpairedNine
+      ? 'Need at least 3 usable rounds — you have an unpaired 9-hole round waiting for a second 9-hole round to combine with.'
+      : 'Need at least 3 rounds to establish a handicap index.';
+    return { handicapIndex: null, roundsUsed: 0, differentials, smallSampleAdj: 0, message };
   }
 
-  const differentials = buildDifferentials(rounds);
   // Use only last 20 (18-hole equivalents, sorted by date desc)
   const recent = [...differentials]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 20);
 
   const n = recent.length;
-  const entry = WHS_TABLE[Math.min(n, 20)] ?? WHS_TABLE[20];
+  // n is guaranteed >= 3 by the gate above, so this is always a valid key
+  const entry = WHS_TABLE[Math.min(n, 20)];
   const [countToUse, adjustment] = entry;
 
   // Sort by differential ascending (lowest = best scores)
@@ -154,17 +163,27 @@ export interface SeasonStats {
 
 export function calcSeasonStats(rounds: RoundInput[], year?: number): SeasonStats {
   const yr = year ?? new Date().getFullYear();
-  const ytd = rounds.filter((r) => new Date(r.date).getFullYear() === yr && r.holes === 18);
+  // "Rounds this year" counts every round played, 9-hole included — only
+  // the differential/handicap math needs to distinguish holes for pairing
+  const ytd = rounds.filter((r) => new Date(r.date).getFullYear() === yr);
+  const ytd18 = ytd.filter((r) => r.holes === 18);
 
-  const avgScore = ytd.length > 0 ? ytd.reduce((s, r) => s + r.score, 0) / ytd.length : null;
+  const avgScore = ytd18.length > 0 ? ytd18.reduce((s, r) => s + r.score, 0) / ytd18.length : null;
   const avgScoreOverPar = null; // populated externally with course par data
 
   const diffs = buildDifferentials(ytd);
   const lowestDiff = diffs.length > 0 ? Math.min(...diffs.map((d) => d.differential)) : null;
 
-  // Group by month
-  const byMonth: Record<string, number[]> = {};
+  // Group by month — count reflects every round played (9 and 18-hole),
+  // but the score average only uses 18-hole rounds so it stays comparable
+  // (a 9-hole score mixed into an 18-hole average would skew it low)
+  const countByMonth: Record<string, number> = {};
   for (const r of ytd) {
+    const m = new Date(r.date).toLocaleString('en-US', { month: 'short' });
+    countByMonth[m] = (countByMonth[m] ?? 0) + 1;
+  }
+  const byMonth: Record<string, number[]> = {};
+  for (const r of ytd18) {
     const m = new Date(r.date).toLocaleString('en-US', { month: 'short' });
     byMonth[m] = [...(byMonth[m] ?? []), r.score];
   }
@@ -174,7 +193,7 @@ export function calcSeasonStats(rounds: RoundInput[], year?: number): SeasonStat
     const scores = byMonth[month] ?? [];
     return {
       month,
-      count: scores.length,
+      count: countByMonth[month] ?? 0,
       avgScore: scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : null,
     };
   });
