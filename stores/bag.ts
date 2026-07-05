@@ -13,10 +13,11 @@ export interface BagClub {
   catalog?: ClubModel; // populated client-side for display
 }
 
-export type BagSection = 'woods' | 'irons' | 'wedges' | 'putter';
+export type BagSection = 'driver' | 'woods' | 'irons' | 'wedges' | 'putter';
 
 export const SLOT_TO_SECTION: Record<string, BagSection> = {
-  driver: 'woods', '3w': 'woods', '5w': 'woods', '7w': 'woods',
+  driver: 'driver',
+  '3w': 'woods', '5w': 'woods', '7w': 'woods',
   '3h': 'woods', '4h': 'woods', '5h': 'woods',
   '2i': 'irons', '3i': 'irons', '4i': 'irons', '5i': 'irons',
   '6i': 'irons', '7i': 'irons', '8i': 'irons', '9i': 'irons', 'PW': 'irons',

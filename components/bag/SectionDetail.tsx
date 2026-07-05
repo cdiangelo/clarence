@@ -14,15 +14,15 @@ interface Props {
 }
 
 const SECTION_LABELS: Record<BagSection, string> = {
-  woods: 'Woods & Hybrids', irons: 'Irons', wedges: 'Wedges', putter: 'Putter',
+  driver: 'Driver', woods: 'Woods & Hybrids', irons: 'Irons', wedges: 'Wedges', putter: 'Putter',
 };
 
 const SECTION_ACCENT: Record<BagSection, string> = {
-  woods: '#2F6B44', irons: '#3B7DC4', wedges: '#B8860B', putter: '#C2492E',
+  driver: '#4A4E8C', woods: '#2F6B44', irons: '#3B7DC4', wedges: '#B8860B', putter: '#C2492E',
 };
 
 const SECTION_WASH: Record<BagSection, string> = {
-  woods: '#E8F0E9', irons: '#E4EEF8', wedges: '#F5EDD4', putter: '#F5E8E4',
+  driver: '#EAEAF5', woods: '#E8F0E9', irons: '#E4EEF8', wedges: '#F5EDD4', putter: '#F5E8E4',
 };
 
 function resolveEstimatedCarry(club: BagClub): number | null {

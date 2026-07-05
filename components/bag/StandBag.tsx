@@ -10,28 +10,32 @@ interface Props {
 }
 
 const SECTION_LABELS: Record<BagSection, string> = {
-  woods: 'Woods', irons: 'Irons', wedges: 'Wedges', putter: 'Putter',
+  driver: 'Driver', woods: 'Woods', irons: 'Irons', wedges: 'Wedges', putter: 'Putter',
 };
 
 const SECTION_COLOR: Record<BagSection, string> = {
-  woods: '#2F6B44', irons: '#3B7DC4', wedges: '#B8860B', putter: '#C2492E',
+  driver: '#4A4E8C', woods: '#2F6B44', irons: '#3B7DC4', wedges: '#B8860B', putter: '#C2492E',
 };
 
-// Quadrant regions overlaid on the bag photo. Editing itself lives entirely
-// in the section-detail sheet, so the image only needs a reasonable
-// clickable zone per section — not pixel-perfect alignment to each club.
+// 5 stacked regions overlaid on the bag photo: 3 on the left (woods, irons,
+// wedges, top to bottom), 2 on the right (driver, putter). Editing itself
+// lives entirely in the section-detail sheet, so the image only needs a
+// reasonable clickable zone per section — not pixel-perfect club alignment.
 const REGIONS: Record<BagSection, { top: string; left: string; width: string; height: string }> = {
-  wedges: { top: '0%',  left: '0%',  width: '50%', height: '50%' },
-  irons:  { top: '50%', left: '0%',  width: '50%', height: '50%' },
-  woods:  { top: '0%',  left: '50%', width: '50%', height: '50%' },
-  putter: { top: '50%', left: '50%', width: '50%', height: '50%' },
+  woods:  { top: '0%',       left: '0%',  width: '50%', height: '33.333%' },
+  irons:  { top: '33.333%',  left: '0%',  width: '50%', height: '33.333%' },
+  wedges: { top: '66.666%',  left: '0%',  width: '50%', height: '33.334%' },
+  driver: { top: '0%',       left: '50%', width: '50%', height: '50%' },
+  putter: { top: '50%',      left: '50%', width: '50%', height: '50%' },
 };
+
+const SECTION_ORDER: BagSection[] = ['woods', 'irons', 'wedges', 'driver', 'putter'];
 
 export function StandBag({ clubs, active, onSelect }: Props) {
   const [zoomed, setZoomed] = useState(true);
-  const sections = Object.keys(REGIONS) as BagSection[];
+  const sections = SECTION_ORDER;
 
-  const counts: Record<BagSection, number> = { woods: 0, irons: 0, wedges: 0, putter: 0 };
+  const counts: Record<BagSection, number> = { driver: 0, woods: 0, irons: 0, wedges: 0, putter: 0 };
   for (const c of clubs) counts[SLOT_TO_SECTION[c.slot] ?? 'irons']++;
 
   function handleWheel(e: React.WheelEvent) {
@@ -60,6 +64,12 @@ export function StandBag({ clubs, active, onSelect }: Props) {
           style={{ opacity: zoomed ? 1 : 0 }}
         />
 
+        {/* Divider lines: vertical center split, plus two horizontal splits on the left third-column */}
+        <div className="absolute top-0 bottom-0 left-1/2 w-px bg-white/15 pointer-events-none" />
+        <div className="absolute left-0 w-1/2 h-px bg-white/15 pointer-events-none" style={{ top: '33.333%' }} />
+        <div className="absolute left-0 w-1/2 h-px bg-white/15 pointer-events-none" style={{ top: '66.666%' }} />
+        <div className="absolute right-0 w-1/2 h-px bg-white/15 pointer-events-none" style={{ top: '50%' }} />
+
         {/* Section click regions */}
         {sections.map((sect) => {
           const r = REGIONS[sect];
@@ -79,17 +89,24 @@ export function StandBag({ clubs, active, onSelect }: Props) {
           );
         })}
 
-        {/* Section badges, one per quadrant corner */}
+        {/* Section badges — one per region, vertically centered in its band,
+            pinned to the outer edge (left column badges on the left, right
+            column badges on the right) */}
         {sections.map((sect) => {
           const r = REGIONS[sect];
           const isActive = active === sect;
-          const cornerStyle: React.CSSProperties = { position: 'absolute' };
-          if (r.top === '0%') cornerStyle.top = 8; else cornerStyle.bottom = 8;
-          if (r.left === '0%') cornerStyle.left = 8; else cornerStyle.right = 8;
+          const isLeftCol = r.left === '0%';
+          const topPct = parseFloat(r.top) + parseFloat(r.height) / 2;
+          const badgeStyle: React.CSSProperties = {
+            position: 'absolute',
+            top: `${topPct}%`,
+            transform: 'translateY(-50%)',
+            ...(isLeftCol ? { left: 8 } : { right: 8 }),
+          };
           return (
             <div
               key={`badge-${sect}`}
-              style={cornerStyle}
+              style={badgeStyle}
               className="pointer-events-none flex items-center gap-1.5 bg-black/55 backdrop-blur-sm rounded-lg px-2 py-1"
             >
               <span
