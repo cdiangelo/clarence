@@ -49,6 +49,20 @@ const WHS_TABLE: Record<number, [number, number]> = {
   20: [8,  0.0],
 };
 
+const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// Dates are always plain 'YYYY-MM-DD' strings. Extracting the year/month via
+// `new Date(str).getFullYear()` parses as UTC midnight, then converts to the
+// *local* timezone before reading the field — in any timezone behind UTC,
+// a date like '2026-01-01' comes back as year 2025. Reading the digits
+// directly out of the string sidesteps that entirely.
+function yearOf(dateStr: string): number {
+  return parseInt(dateStr.slice(0, 4), 10);
+}
+function monthAbbrOf(dateStr: string): string {
+  return MONTH_ABBR[parseInt(dateStr.slice(5, 7), 10) - 1];
+}
+
 // Calculate a score differential for a single 18-hole round
 export function calcDifferential18(score: number, courseRating: number, slopeRating: number): number {
   return ((score - courseRating) * 113) / slopeRating;
@@ -165,7 +179,7 @@ export function calcSeasonStats(rounds: RoundInput[], year?: number): SeasonStat
   const yr = year ?? new Date().getFullYear();
   // "Rounds this year" counts every round played, 9-hole included — only
   // the differential/handicap math needs to distinguish holes for pairing
-  const ytd = rounds.filter((r) => new Date(r.date).getFullYear() === yr);
+  const ytd = rounds.filter((r) => yearOf(r.date) === yr);
   const ytd18 = ytd.filter((r) => r.holes === 18);
 
   const avgScore = ytd18.length > 0 ? ytd18.reduce((s, r) => s + r.score, 0) / ytd18.length : null;
@@ -179,17 +193,16 @@ export function calcSeasonStats(rounds: RoundInput[], year?: number): SeasonStat
   // (a 9-hole score mixed into an 18-hole average would skew it low)
   const countByMonth: Record<string, number> = {};
   for (const r of ytd) {
-    const m = new Date(r.date).toLocaleString('en-US', { month: 'short' });
+    const m = monthAbbrOf(r.date);
     countByMonth[m] = (countByMonth[m] ?? 0) + 1;
   }
   const byMonth: Record<string, number[]> = {};
   for (const r of ytd18) {
-    const m = new Date(r.date).toLocaleString('en-US', { month: 'short' });
+    const m = monthAbbrOf(r.date);
     byMonth[m] = [...(byMonth[m] ?? []), r.score];
   }
 
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const monthlyData = months.map((month) => {
+  const monthlyData = MONTH_ABBR.map((month) => {
     const scores = byMonth[month] ?? [];
     return {
       month,
