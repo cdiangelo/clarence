@@ -78,7 +78,7 @@ export default function DashboardPage() {
 
         {/* Handicap hero + stats, consolidated into one card */}
         <div className="bg-turf text-white rounded-2xl overflow-hidden flex">
-          <div className="flex-1 px-5 py-4 min-w-0">
+          <div className="flex-1 basis-1/3 px-5 py-4 min-w-0">
             <div className="text-[10px] font-display tracking-widest opacity-70 mb-1">HANDICAP INDEX</div>
             <div className="flex items-end gap-3">
               <span className="text-5xl font-display tracking-wider">
@@ -100,8 +100,8 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Softer green stats panel */}
-          <div className="w-[112px] flex-shrink-0 bg-white/10 flex flex-col divide-y divide-white/15">
+          {/* Softer green stats panel — 3 equal-width columns filling the right 2/3 */}
+          <div className="flex-1 basis-2/3 flex-shrink-0 bg-white/10 flex divide-x divide-white/15">
             <MiniStat value={season.roundsYTD.toString()} label="Rounds" sub={new Date().getFullYear().toString()} />
             <MiniStat value={season.avgScore != null ? season.avgScore.toFixed(1) : '—'} label="Avg Score" />
             <MiniStat value={season.lowestDiff != null ? season.lowestDiff.toFixed(1) : '—'} label="Best Diff" />
