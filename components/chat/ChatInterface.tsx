@@ -3,6 +3,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useChatStore } from '@/stores/chat';
 import { MessageBubble } from './MessageBubble';
 import { ChatHistory } from './ChatHistory';
+import { DocumentsPanel } from './DocumentsPanel';
 
 const QUICK_PROMPTS = [
   'What should I work on to lower my handicap?',
@@ -17,6 +18,7 @@ export function ChatInterface({ initialMessage }: { initialMessage?: string }) {
   const { messages, isLoading, send, startNew, loadSession } = useChatStore();
   const [input, setInput] = useState('');
   const [showHistory, setShowHistory] = useState(false);
+  const [showDocuments, setShowDocuments] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const didSendInitial = useRef(false);
@@ -64,6 +66,12 @@ export function ChatInterface({ initialMessage }: { initialMessage?: string }) {
         </div>
         <div className="flex items-center gap-3">
           <button
+            onClick={() => setShowDocuments(true)}
+            className="text-[10px] font-display tracking-wider text-ink-muted hover:text-turf"
+          >
+            KNOWLEDGE
+          </button>
+          <button
             onClick={() => setShowHistory(true)}
             className="text-[10px] font-display tracking-wider text-ink-muted hover:text-turf"
           >
@@ -83,6 +91,8 @@ export function ChatInterface({ initialMessage }: { initialMessage?: string }) {
           onSelect={(id) => { loadSession(id); setShowHistory(false); }}
         />
       )}
+
+      {showDocuments && <DocumentsPanel onClose={() => setShowDocuments(false)} />}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0">

@@ -28,6 +28,11 @@ export interface GolfContext {
     date: string;
     title: string;
   }[];
+  documents: {
+    id: string;
+    filename: string;
+    charCount: number;
+  }[];
 }
 
 export function buildGolfSystemPrompt(ctx: GolfContext): string {
@@ -57,6 +62,10 @@ export function buildGolfSystemPrompt(ctx: GolfContext): string {
     ? ctx.recentSessions.map((s) => `• [${s.id}] ${s.date} — ${s.title}`).join('\n')
     : 'No prior conversations.';
 
+  const documentsSection = ctx.documents.length > 0
+    ? ctx.documents.map((d) => `• [${d.id}] ${d.filename} (${d.charCount.toLocaleString()} chars)`).join('\n')
+    : 'None uploaded yet.';
+
   return `You are Clarence — an expert personal golf caddie and performance advisor. You know this player's game intimately and give precise, personalized advice rooted in their actual data.
 
 ## Your Role
@@ -73,6 +82,14 @@ export function buildGolfSystemPrompt(ctx: GolfContext): string {
 - Be concise. 3-5 bullet points unless a deep dive is requested
 - When you don't have enough data (no bag, no rounds), say so and ask for what you need
 
+## Caddie Philosophy
+A few grounding ideas, drawn from how the best golf writing and coaching actually treats the game — they shape tone, not just tactics:
+- **The score isn't the whole story.** A round is worth logging and discussing even when it was bad — process, effort, and what it revealed about the player's game matter alongside the number.
+- **Weight the scoring zone.** Short game and course management outrank driver distance; when advice has to be prioritized, favor the 100-yards-and-in game and next-shot focus over swing overhauls or distance chasing.
+- **Next shot, not last shot.** Never let a blow-up hole or a bad stretch color the read on a player's game — treat each shot as a clean slate, the same way you'd coach someone through it in person.
+- **Restore, don't impose.** Advise from this player's own tendencies and data, not a generic ideal swing or setup. A good caddie surfaces what's already true about someone's game rather than prescribing a one-size-fits-all fix.
+- **Two registers, both legitimate.** Stats, gapping, and practice plans can be disciplined and precise. Round reflections and season narrative can be a little more reflective. Don't force one register onto the other.
+
 ## Tool Philosophy
 - Always call **get_user_rounds** before analyzing trends or making practice recommendations
 - Always call **get_user_bag** before giving equipment or club selection advice
@@ -80,6 +97,7 @@ export function buildGolfSystemPrompt(ctx: GolfContext): string {
 - Call **get_course_holes** before giving hole-by-hole strategy
 - Call **search_courses** if the user names a course that isn't in your context
 - Call **get_chat_history** if the player references a past conversation (e.g. "like you said last time") and you need the actual content, not just the title
+- Call **get_user_document** whenever the player has uploaded personal material (swing notes, lesson summaries, individual performance data) that could bear on the question — pull it before answering rather than falling back on generic advice
 
 ## Player Context
 
@@ -96,5 +114,8 @@ ${roundsSection}
 ${bagSection}
 
 **Recent Conversations** (call get_chat_history with the bracketed id for full content):
-${sessionsSection}`;
+${sessionsSection}
+
+**Player's Uploaded Documents** (call get_user_document with the bracketed id for full content):
+${documentsSection}`;
 }

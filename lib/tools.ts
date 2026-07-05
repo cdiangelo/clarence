@@ -73,4 +73,15 @@ export const GOLF_TOOLS: ToolDef[] = [
       },
     },
   },
+  {
+    name: 'get_user_document',
+    description: "Fetch the full extracted text of a document this player uploaded (swing notes, lesson summaries, individual performance data, or any other personal reference material). The system prompt lists the titles of uploaded documents — call this with a document's id whenever the question touches something a personal document might cover, so you're advising from their own material rather than generic knowledge.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        documentId: { type: 'string', description: "Document ID from the \"Player's Uploaded Documents\" list in your context." },
+      },
+      required: ['documentId'],
+    },
+  },
 ];

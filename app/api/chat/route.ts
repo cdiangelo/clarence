@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Build context from DB
-  const [roundRows, clubRows, userRow, sessionRows] = await Promise.all([
+  const [roundRows, clubRows, userRow, sessionRows, documentRows] = await Promise.all([
     query<{
       id: string; course_name: string; date: string; holes: number; score: number; round_type: string;
       course_rating: number | null; slope_rating: number | null; putts: number | null;
@@ -70,6 +70,10 @@ export async function POST(req: NextRequest) {
        WHERE user_id = $1 AND id != $2
        ORDER BY updated_at DESC LIMIT 8`,
       [session.userId, chatSessionId],
+    ).catch(() => []),
+    query<{ id: string; filename: string; char_count: number }>(
+      'SELECT id, filename, char_count FROM user_documents WHERE user_id = $1 ORDER BY created_at DESC',
+      [session.userId],
     ).catch(() => []),
   ]);
 
@@ -104,6 +108,9 @@ export async function POST(req: NextRequest) {
     })),
     recentSessions: sessionRows.map((s) => ({
       id: s.id, date: s.updated_at, title: s.title ?? 'Untitled chat',
+    })),
+    documents: documentRows.map((d) => ({
+      id: d.id, filename: d.filename, charCount: d.char_count,
     })),
   });
 
@@ -183,6 +190,18 @@ export async function POST(req: NextRequest) {
           handicapNote: 'handicapIndex excludes scramble/team rounds per WHS rules',
           seasonStats,
         });
+      }
+
+      case 'get_user_document': {
+        const { documentId } = input as { documentId: string };
+        try {
+          const rows = await query<{ filename: string; content: string }>(
+            'SELECT filename, content FROM user_documents WHERE id = $1 AND user_id = $2',
+            [documentId, userId],
+          );
+          if (rows.length === 0) return JSON.stringify({ error: 'Document not found' });
+          return JSON.stringify({ filename: rows[0].filename, content: rows[0].content });
+        } catch (e) { return `Error fetching document: ${(e as Error).message}`; }
       }
 
       case 'get_user_bag': {

@@ -151,6 +151,20 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- ─── USER DOCUMENTS (persistent chatbot knowledge) ─────────────
+-- User-uploaded PDF/MD/text files (swing notes, lesson summaries, individual
+-- performance data, etc). Extracted plain text is stored directly — Claude
+-- pulls it via the get_user_document tool when it's relevant to the question,
+-- the same pattern used for chat history.
+CREATE TABLE IF NOT EXISTS user_documents (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  filename    TEXT NOT NULL,
+  content     TEXT NOT NULL,
+  char_count  INT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ─── INDEXES ──────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_rounds_user_date ON rounds(user_id, date DESC);
 CREATE INDEX IF NOT EXISTS idx_round_holes_round ON round_holes(round_id);
@@ -159,3 +173,4 @@ CREATE INDEX IF NOT EXISTS idx_courses_name ON courses USING gin(to_tsvector('en
 CREATE INDEX IF NOT EXISTS idx_agent_cache_key ON agent_cache(key);
 CREATE INDEX IF NOT EXISTS idx_chat_sessions_user ON chat_sessions(user_id, updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_user_documents_user ON user_documents(user_id, created_at DESC);
