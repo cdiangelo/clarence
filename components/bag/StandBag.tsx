@@ -1,8 +1,7 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import type { BagClub, BagSection } from '@/stores/bag';
-import { SLOT_TO_SECTION, SLOT_ORDER } from '@/stores/bag';
-import { clubShape, type ClubShape } from '@/lib/clubShape';
+import { SLOT_TO_SECTION } from '@/stores/bag';
 
 interface Props {
   clubs: BagClub[];
@@ -10,302 +9,128 @@ interface Props {
   onSelect: (s: BagSection) => void;
 }
 
-// ── Top-down POV: looking down into the bag's 14-way top opening ──
-// viewBox: 0 0 360 360
-const CX = 180;
-const CY = 180;
-
-const WALL_RX = 130;
-const WALL_RY = 100;
-const RIM_RX = 98;
-const RIM_RY = 72;
-const CLUB_RX = RIM_RX * 0.66;
-const CLUB_RY = RIM_RY * 0.66;
-const TAB_RX = 150;
-const TAB_RY = 120;
-
-// Slice boundaries in degrees, clockwise from top (0deg = 12 o'clock)
-const BOUNDS: Record<BagSection, [number, number]> = {
-  woods:  [0, 60],
-  irons:  [60, 210],
-  wedges: [210, 300],
-  putter: [300, 360],
-};
-
 const SECTION_LABELS: Record<BagSection, string> = {
-  woods: 'WOODS', irons: 'IRONS', wedges: 'WEDGES', putter: 'PUTTER',
+  woods: 'Woods', irons: 'Irons', wedges: 'Wedges', putter: 'Putter',
 };
 
 const SECTION_COLOR: Record<BagSection, string> = {
   woods: '#2F6B44', irons: '#3B7DC4', wedges: '#B8860B', putter: '#C2492E',
 };
 
-const SECTION_ACCENT: Record<BagSection, string> = {
-  woods: '#4A8A5E', irons: '#5A97D4', wedges: '#D4A820', putter: '#D86A52',
+// Quadrant regions overlaid on the bag photo. Editing itself lives entirely
+// in the section-detail sheet, so the image only needs a reasonable
+// clickable zone per section — not pixel-perfect alignment to each club.
+const REGIONS: Record<BagSection, { top: string; left: string; width: string; height: string }> = {
+  wedges: { top: '0%',  left: '0%',  width: '50%', height: '50%' },
+  irons:  { top: '50%', left: '0%',  width: '50%', height: '50%' },
+  woods:  { top: '0%',  left: '50%', width: '50%', height: '50%' },
+  putter: { top: '50%', left: '50%', width: '50%', height: '50%' },
 };
-
-// At the ~15px this graphic renders each club, neither a photo nor a
-// per-type silhouette reads clearly (tested — both become an unrecognizable
-// blob). So the overview shows clean, larger, material-toned dots grouped
-// by section color; genuine clubhead photos live in the section detail
-// sheet instead, where there's enough room (48px+) for them to actually read.
-const HEAD_GRADIENT: Record<ClubShape, string> = {
-  driver: 'url(#g-driverhead)', fairway: 'url(#g-woodhead)', hybrid: 'url(#g-woodhead)',
-  iron: 'url(#g-ironhead)', wedge: 'url(#g-wedgehead)', putter: 'url(#g-putterhead)',
-};
-
-const HEAD_RADIUS: Record<ClubShape, number> = {
-  driver: 8.5, fairway: 7, hybrid: 6.5, iron: 5.5, wedge: 5.5, putter: 6.5,
-};
-
-function polar(rx: number, ry: number, angleDeg: number) {
-  const rad = (angleDeg * Math.PI) / 180;
-  return { x: CX + rx * Math.sin(rad), y: CY - ry * Math.cos(rad) };
-}
-
-function slicePath(a0: number, a1: number, rx: number, ry: number) {
-  const p0 = polar(rx, ry, a0);
-  const p1 = polar(rx, ry, a1);
-  const large = a1 - a0 > 180 ? 1 : 0;
-  return `M ${CX},${CY} L ${p0.x},${p0.y} A ${rx},${ry} 0 ${large} 1 ${p1.x},${p1.y} Z`;
-}
-
-function clubPositions(a0: number, a1: number, n: number): number[] {
-  if (n <= 0) return [];
-  const pad = Math.min(10, (a1 - a0) / 4);
-  const lo = a0 + pad;
-  const hi = a1 - pad;
-  if (n === 1) return [(lo + hi) / 2];
-  return Array.from({ length: n }, (_, i) => lo + (i * (hi - lo)) / (n - 1));
-}
 
 export function StandBag({ clubs, active, onSelect }: Props) {
-  const sections = Object.keys(BOUNDS) as BagSection[];
+  const [zoomed, setZoomed] = useState(true);
+  const sections = Object.keys(REGIONS) as BagSection[];
 
-  const bySection: Record<BagSection, BagClub[]> = { woods: [], irons: [], wedges: [], putter: [] };
-  for (const c of clubs) {
-    bySection[SLOT_TO_SECTION[c.slot] ?? 'irons'].push(c);
+  const counts: Record<BagSection, number> = { woods: 0, irons: 0, wedges: 0, putter: 0 };
+  for (const c of clubs) counts[SLOT_TO_SECTION[c.slot] ?? 'irons']++;
+
+  function handleWheel(e: React.WheelEvent) {
+    if (e.deltaY < -5) setZoomed(true);
+    if (e.deltaY > 5) setZoomed(false);
   }
-  for (const s of sections) {
-    bySection[s].sort((a, b) => SLOT_ORDER.indexOf(a.slot) - SLOT_ORDER.indexOf(b.slot));
-  }
-  const counts: Record<BagSection, number> = {
-    woods: bySection.woods.length, irons: bySection.irons.length,
-    wedges: bySection.wedges.length, putter: bySection.putter.length,
-  };
 
   return (
-    <svg
-      viewBox="0 0 360 360"
-      className="w-full max-w-[300px] select-none"
-      style={{ filter: 'drop-shadow(0 10px 22px rgba(0,0,0,0.5))' }}
-      aria-label="Golf bag — top-down view"
-    >
-      <defs>
-        <radialGradient id="g-walltop" cx="48%" cy="42%" r="65%">
-          <stop offset="0%"  stopColor="#262C32"/>
-          <stop offset="55%" stopColor="#171B1F"/>
-          <stop offset="100%" stopColor="#2E363C"/>
-        </radialGradient>
+    <div className="w-full max-w-[340px] mx-auto">
+      <div
+        className="relative w-full aspect-square rounded-2xl overflow-hidden bg-black select-none"
+        style={{ boxShadow: '0 14px 32px rgba(0,0,0,0.35)' }}
+        onWheel={handleWheel}
+      >
+        {/* Crossfaded full/closeup photos */}
+        <img
+          src="/bag/full.jpg"
+          alt="Golf bag"
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
+          style={{ opacity: zoomed ? 0 : 1 }}
+        />
+        <img
+          src="/bag/closeup.jpg"
+          alt="Golf bag clubs close-up"
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
+          style={{ opacity: zoomed ? 1 : 0 }}
+        />
 
-        <radialGradient id="g-interior" cx="50%" cy="56%" r="72%">
-          <stop offset="0%"   stopColor="#05070A"/>
-          <stop offset="60%"  stopColor="#0D1114"/>
-          <stop offset="100%" stopColor="#1C2228"/>
-        </radialGradient>
-
-        <radialGradient id="g-hub" cx="38%" cy="34%" r="65%">
-          <stop offset="0%"   stopColor="#565F66"/>
-          <stop offset="100%" stopColor="#1A1E22"/>
-        </radialGradient>
-
-        {/* Clubhead material gradients — distinct finishes per type */}
-        <radialGradient id="g-driverhead" cx="34%" cy="28%" r="75%">
-          <stop offset="0%"   stopColor="#454B51"/>
-          <stop offset="45%"  stopColor="#22262A"/>
-          <stop offset="100%" stopColor="#0A0C0E"/>
-        </radialGradient>
-        <radialGradient id="g-woodhead" cx="34%" cy="28%" r="75%">
-          <stop offset="0%"   stopColor="#EEF2F4"/>
-          <stop offset="45%"  stopColor="#AAB3B9"/>
-          <stop offset="100%" stopColor="#5C646A"/>
-        </radialGradient>
-        <radialGradient id="g-ironhead" cx="34%" cy="28%" r="75%">
-          <stop offset="0%"   stopColor="#F1F4F5"/>
-          <stop offset="45%"  stopColor="#C4CCD0"/>
-          <stop offset="100%" stopColor="#7C848A"/>
-        </radialGradient>
-        <radialGradient id="g-wedgehead" cx="34%" cy="28%" r="75%">
-          <stop offset="0%"   stopColor="#8C8072"/>
-          <stop offset="45%"  stopColor="#5D5347"/>
-          <stop offset="100%" stopColor="#33291F"/>
-        </radialGradient>
-        <radialGradient id="g-putterhead" cx="34%" cy="28%" r="75%">
-          <stop offset="0%"   stopColor="#4E5256"/>
-          <stop offset="45%"  stopColor="#282B2E"/>
-          <stop offset="100%" stopColor="#101214"/>
-        </radialGradient>
-
-        <clipPath id="clip-wall"><ellipse cx={CX} cy={CY} rx={WALL_RX} ry={WALL_RY}/></clipPath>
-        <clipPath id="clip-rim"><ellipse cx={CX} cy={CY} rx={RIM_RX} ry={RIM_RY}/></clipPath>
-
-        <filter id="f-texture" x="0%" y="0%" width="100%" height="100%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="4" result="n"/>
-          <feColorMatrix in="n" type="saturate" values="0" result="g"/>
-          <feBlend in="SourceGraphic" in2="g" mode="multiply" result="b"/>
-          <feBlend in="SourceGraphic" in2="b" mode="screen" k2="0.96" k3="0.04"/>
-        </filter>
-      </defs>
-
-      {/* ── Outer fabric wall ── */}
-      <ellipse cx={CX} cy={CY} rx={WALL_RX} ry={WALL_RY} fill="url(#g-walltop)"/>
-      <g clipPath="url(#clip-wall)" opacity="0.05">
-        <rect x="0" y="0" width="360" height="360" fill="#fff" filter="url(#f-texture)"/>
-      </g>
-      <path
-        d={`M ${polar(WALL_RX - 8, WALL_RY - 8, 300).x},${polar(WALL_RX - 8, WALL_RY - 8, 300).y}
-            A ${WALL_RX - 8},${WALL_RY - 8} 0 0 1 ${polar(WALL_RX - 8, WALL_RY - 8, 40).x},${polar(WALL_RX - 8, WALL_RY - 8, 40).y}`}
-        fill="none" stroke="#fff" strokeWidth="3" opacity="0.06" strokeLinecap="round"
-      />
-
-      {/* ── Inner opening (tube interior) ── */}
-      <ellipse cx={CX} cy={CY} rx={RIM_RX} ry={RIM_RY} fill="url(#g-interior)"/>
-      <ellipse cx={CX} cy={CY} rx={RIM_RX} ry={RIM_RY} fill="none" stroke="#40484E" strokeWidth="1.4" opacity="0.7"/>
-      <ellipse cx={CX} cy={CY} rx={WALL_RX} ry={WALL_RY} fill="none" stroke="#3A4248" strokeWidth="1.2" opacity="0.5"/>
-
-      {/* ── Section tint + dividers (behind clubheads) ── */}
-      <g clipPath="url(#clip-rim)">
+        {/* Section click regions */}
         {sections.map((sect) => {
-          const [a0, a1] = BOUNDS[sect];
+          const r = REGIONS[sect];
           const isActive = active === sect;
           return (
-            <path
-              key={`fill-${sect}`}
-              d={slicePath(a0, a1, RIM_RX, RIM_RY)}
-              fill={isActive ? SECTION_COLOR[sect] : 'transparent'}
-              opacity={isActive ? 0.2 : 0}
-              style={{ transition: 'opacity 0.25s' }}
+            <button
+              key={sect}
+              onClick={() => onSelect(sect)}
+              aria-label={`${SECTION_LABELS[sect]} — ${counts[sect]} clubs`}
+              className="absolute transition-colors"
+              style={{
+                top: r.top, left: r.left, width: r.width, height: r.height,
+                backgroundColor: isActive ? SECTION_COLOR[sect] + '2A' : 'transparent',
+                boxShadow: isActive ? `inset 0 0 0 2px ${SECTION_COLOR[sect]}` : 'inset 0 0 0 0px transparent',
+              }}
             />
           );
         })}
-      </g>
 
-      {([0, 60, 210, 300] as number[]).map((deg) => {
-        const inner = polar(16, 12, deg);
-        const outer = polar(RIM_RX, RIM_RY, deg);
-        return (
-          <g key={deg}>
-            <line x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y} stroke="#0B0D0F" strokeWidth="3" strokeLinecap="round"/>
-            <line x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y} stroke="#4A5258" strokeWidth="1" strokeLinecap="round" opacity="0.4"
-              transform={`rotate(0.7 ${CX} ${CY})`}/>
-          </g>
-        );
-      })}
-
-      {active && (
-        <g clipPath="url(#clip-rim)">
-          <path
-            d={slicePath(...BOUNDS[active], RIM_RX, RIM_RY)}
-            fill="none" stroke={SECTION_ACCENT[active]} strokeWidth="2" opacity="0.6"
-          />
-        </g>
-      )}
-
-      {/* ── Realistic clubhead silhouettes, fanned outward from the hub ── */}
-      <g clipPath="url(#clip-rim)">
+        {/* Section badges, one per quadrant corner */}
         {sections.map((sect) => {
-          const [a0, a1] = BOUNDS[sect];
-          const sectionClubs = bySection[sect];
-          const angles = clubPositions(a0, a1, sectionClubs.length);
-          const shrink = sect === 'woods' && sectionClubs.length > 3 ? 0.82 : 1;
-          return sectionClubs.map((club, i) => {
-            const ang = angles[i];
-            const p = polar(CLUB_RX, CLUB_RY, ang);
-            const shape = clubShape(club.slot);
-            const r = HEAD_RADIUS[shape] * shrink;
-
-            return (
-              <g key={club.id} transform={`translate(${p.x}, ${p.y})`}>
-                <circle r={r + 1.3} fill={SECTION_COLOR[sect]} opacity="0.9" />
-                <circle r={r} fill={HEAD_GRADIENT[shape]} stroke="#0B0D0F" strokeWidth="0.6" />
-                <circle cx={-r * 0.32} cy={-r * 0.32} r={r * 0.32} fill="#fff" opacity="0.35" />
-              </g>
-            );
-          });
-        })}
-      </g>
-
-      {/* ── Center hub ── */}
-      <circle cx={CX} cy={CY} r={14} fill="url(#g-hub)" stroke="#606870" strokeWidth="1"/>
-      <circle cx={CX - 4} cy={CY - 4} r={4} fill="#fff" opacity="0.2"/>
-
-      {/* ── Click targets — section only; per-club editing lives in the sheet ── */}
-      {sections.map((sect) => (
-        <path
-          key={`hit-${sect}`}
-          d={slicePath(...BOUNDS[sect], RIM_RX, RIM_RY)}
-          fill="transparent"
-          className="cursor-pointer"
-          onClick={() => onSelect(sect)}
-          role="button"
-          aria-label={`${SECTION_LABELS[sect]} — ${counts[sect]} clubs`}
-          tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && onSelect(sect)}
-        />
-      ))}
-
-      {/* ── Side highlight tabs (primary selection UI) ── */}
-      {sections.map((sect) => {
-        const [a0, a1] = BOUNDS[sect];
-        const mid = (a0 + a1) / 2;
-        const rimPt = polar(WALL_RX, WALL_RY, mid);
-        const tabPt = polar(TAB_RX, TAB_RY, mid);
-        const isActive = active === sect;
-        const tabW = 62, tabH = 34;
-        return (
-          <g key={`tab-${sect}`}>
-            <line
-              x1={rimPt.x} y1={rimPt.y} x2={tabPt.x} y2={tabPt.y}
-              stroke={isActive ? SECTION_COLOR[sect] : '#3A4248'}
-              strokeWidth="1.2" strokeDasharray="2.5 2" opacity={isActive ? 0.8 : 0.35}
-            />
-            <g
-              transform={`translate(${tabPt.x - tabW / 2}, ${tabPt.y - tabH / 2})`}
-              className="cursor-pointer"
-              onClick={() => onSelect(sect)}
-              role="button"
-              aria-label={`Select ${SECTION_LABELS[sect]}`}
-              tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && onSelect(sect)}
+          const r = REGIONS[sect];
+          const isActive = active === sect;
+          const cornerStyle: React.CSSProperties = { position: 'absolute' };
+          if (r.top === '0%') cornerStyle.top = 8; else cornerStyle.bottom = 8;
+          if (r.left === '0%') cornerStyle.left = 8; else cornerStyle.right = 8;
+          return (
+            <div
+              key={`badge-${sect}`}
+              style={cornerStyle}
+              className="pointer-events-none flex items-center gap-1.5 bg-black/55 backdrop-blur-sm rounded-lg px-2 py-1"
             >
-              <rect
-                width={tabW} height={tabH} rx="10"
-                fill={isActive ? SECTION_COLOR[sect] + '1A' : '#FFFFFF'}
-                stroke={isActive ? SECTION_COLOR[sect] : '#E2E0D8'}
-                strokeWidth={isActive ? 1.6 : 1}
-                style={{ transition: 'all 0.2s' }}
+              <span
+                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: isActive ? SECTION_COLOR[sect] : '#8A929A' }}
               />
-              <text
-                x={tabW / 2} y={14}
-                textAnchor="middle" dominantBaseline="middle"
-                fontSize="13" fontFamily="Spline Sans Mono,monospace" fontWeight="700"
-                fill={isActive ? SECTION_COLOR[sect] : '#6A7680'}
-              >
-                {counts[sect]}
-              </text>
-              <text
-                x={tabW / 2} y={26}
-                textAnchor="middle" dominantBaseline="middle"
-                fontSize="7" fontFamily="Archivo,sans-serif" fontWeight="800"
-                letterSpacing="0.08em"
-                fill={isActive ? SECTION_ACCENT[sect] : '#9BA3A5'}
-              >
+              <span className="text-[9px] font-display tracking-wider text-white/90 uppercase leading-none">
                 {SECTION_LABELS[sect]}
-              </text>
-            </g>
-          </g>
-        );
-      })}
-    </svg>
+              </span>
+              <span className="text-[10px] font-display font-extrabold text-white stat-num leading-none">
+                {counts[sect]}
+              </span>
+            </div>
+          );
+        })}
+
+        {/* Zoom toggle */}
+        <button
+          onClick={() => setZoomed((z) => !z)}
+          aria-label={zoomed ? 'Zoom out' : 'Zoom in'}
+          className="absolute top-1/2 right-2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/55 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+        >
+          {zoomed ? (
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.4"/>
+              <path d="M9.3 9.3 L13 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+              <path d="M4 6h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+            </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.4"/>
+              <path d="M9.3 9.3 L13 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+              <path d="M4 6h4M6 4v4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+            </svg>
+          )}
+        </button>
+      </div>
+
+      <div className="text-[10px] text-ink-muted mt-2 text-center">
+        Tap the zoom icon (or scroll) to zoom in/out · tap a quadrant to view clubs
+      </div>
+    </div>
   );
 }

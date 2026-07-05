@@ -131,14 +131,9 @@ export default function BagPage() {
           </button>
         </div>
 
-        {/* Bag — top-down view with built-in section tabs */}
+        {/* Bag photo with zoom + section regions */}
         <div className="flex flex-col items-center px-2 pt-1">
-          <div className="w-full max-w-[340px]">
-            <StandBag clubs={clubs} active={activeSection} onSelect={handleBagSelect} />
-          </div>
-          <div className="text-[10px] text-ink-muted mt-1 text-center">
-            Tap a section of the bag, or its tab, to view clubs
-          </div>
+          <StandBag clubs={clubs} active={activeSection} onSelect={handleBagSelect} />
         </div>
       </div>
 
