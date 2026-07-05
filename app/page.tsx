@@ -56,7 +56,7 @@ export default function DashboardPage() {
 
   return (
     <AppShell>
-      <div className="px-4 py-5 space-y-5 pb-4">
+      <div className="px-4 py-4 space-y-4 pb-4">
         {/* Round type filter */}
         <div className="flex gap-1.5">
           {FILTERS.map(({ key, label }) => (
@@ -76,47 +76,42 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Handicap hero */}
-        <div className="bg-turf text-white rounded-2xl px-5 py-4">
-          <div className="text-[10px] font-display tracking-widest opacity-70 mb-1">HANDICAP INDEX</div>
-          <div className="flex items-end gap-3">
-            <span className="text-5xl font-display tracking-wider">
-              {hcp.handicapIndex != null ? hcp.handicapIndex.toFixed(1) : '—'}
-            </span>
-            {hcp.handicapIndex == null && (
-              <span className="text-sm opacity-70 mb-1">
-                {hcp.message ?? 'Log more rounds'}
+        {/* Handicap hero + stats, consolidated into one card */}
+        <div className="bg-turf text-white rounded-2xl overflow-hidden flex">
+          <div className="flex-1 px-5 py-4 min-w-0">
+            <div className="text-[10px] font-display tracking-widest opacity-70 mb-1">HANDICAP INDEX</div>
+            <div className="flex items-end gap-3">
+              <span className="text-5xl font-display tracking-wider">
+                {hcp.handicapIndex != null ? hcp.handicapIndex.toFixed(1) : '—'}
               </span>
+              {hcp.handicapIndex == null && (
+                <span className="text-xs opacity-70 mb-1">
+                  {hcp.message ?? 'Log more rounds'}
+                </span>
+              )}
+            </div>
+            <div className="text-[9px] opacity-60 mt-1 font-display tracking-wider">
+              {hcp.roundsUsed > 0 ? `BEST ${hcp.roundsUsed} OF ${Math.min(filteredRounds.length, 20)} DIFFERENTIALS` : 'WORLD HANDICAP SYSTEM'}
+            </div>
+            {filter === 'scramble' && (
+              <div className="text-[9px] opacity-60 mt-1.5 leading-snug">
+                Scramble/team rounds aren&rsquo;t WHS-eligible — reference only, not an official index.
+              </div>
             )}
           </div>
-          <div className="text-[10px] opacity-60 mt-1 font-display tracking-wider">
-            {hcp.roundsUsed > 0 ? `BEST ${hcp.roundsUsed} OF ${Math.min(filteredRounds.length, 20)} DIFFERENTIALS` : 'WORLD HANDICAP SYSTEM'}
-          </div>
-          {filter === 'scramble' && (
-            <div className="text-[10px] opacity-60 mt-1.5">
-              Scramble/team rounds aren&rsquo;t WHS-eligible — this is a reference number only, not an official index.
-            </div>
-          )}
-        </div>
 
-        {/* Stats row */}
-        <div className="grid grid-cols-3 gap-2.5">
-          <StatCard label="Rounds" value={season.roundsYTD.toString()} sub={new Date().getFullYear().toString()} />
-          <StatCard
-            label="Avg Score"
-            value={season.avgScore != null ? season.avgScore.toFixed(1) : '—'}
-          />
-          <StatCard
-            label="Best Diff"
-            value={season.lowestDiff != null ? season.lowestDiff.toFixed(1) : '—'}
-            sub="this year"
-          />
+          {/* Softer green stats panel */}
+          <div className="w-[112px] flex-shrink-0 bg-white/10 flex flex-col divide-y divide-white/15">
+            <MiniStat value={season.roundsYTD.toString()} label="Rounds" sub={new Date().getFullYear().toString()} />
+            <MiniStat value={season.avgScore != null ? season.avgScore.toFixed(1) : '—'} label="Avg Score" />
+            <MiniStat value={season.lowestDiff != null ? season.lowestDiff.toFixed(1) : '—'} label="Best Diff" />
+          </div>
         </div>
 
         {/* Season chart */}
         {season.roundsYTD > 0 && (
           <div className="bg-card border border-border rounded-xl p-3">
-            <div className="eyebrow mb-3">Season Overview</div>
+            <div className="eyebrow mb-2">Season Overview</div>
             <ComboChart data={chartData} />
           </div>
         )}
@@ -181,12 +176,12 @@ export default function DashboardPage() {
   );
 }
 
-function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function MiniStat({ value, label, sub }: { value: string; label: string; sub?: string }) {
   return (
-    <div className="bg-card border border-border rounded-xl px-3 py-3 text-center">
-      <div className="text-xl stat-num font-bold text-ink">{value}</div>
-      <div className="text-[9px] font-display tracking-wider text-ink-soft mt-0.5">{label.toUpperCase()}</div>
-      {sub && <div className="text-[9px] text-ink-muted">{sub}</div>}
+    <div className="flex-1 flex flex-col items-center justify-center px-2 py-1.5 text-center min-h-0">
+      <div className="text-base stat-num font-bold text-white leading-tight">{value}</div>
+      <div className="text-[7px] font-display tracking-wider text-white/70 leading-tight">{label.toUpperCase()}</div>
+      {sub && <div className="text-[7px] text-white/50 leading-tight">{sub}</div>}
     </div>
   );
 }

@@ -14,8 +14,8 @@ interface Props {
 }
 
 const W = 560;
-const H = 200;
-const PAD = { top: 24, right: 24, bottom: 36, left: 44 };
+const H = 148;
+const PAD = { top: 20, right: 24, bottom: 28, left: 40 };
 const CHART_W = W - PAD.left - PAD.right;
 const CHART_H = H - PAD.top - PAD.bottom;
 
@@ -59,9 +59,14 @@ export function ComboChart({ data, par = 72 }: Props) {
   const hcpPath = buildPath(data.map((d) => d.handicap), yLine);
   const parY = yLine(par);
 
-  // Y-axis ticks for score line
+  // Y-axis ticks for score line — pick a "nice" step that keeps roughly one
+  // tick per ~24px of chart height, however wide lineRange happens to be
+  // (score and handicap share this axis, so the range can vary a lot)
   const lineRange = maxLine - minLine;
-  const tickStep = lineRange <= 12 ? 2 : 4;
+  const idealTicks = Math.max(3, Math.floor(CHART_H / 24));
+  const rawStep = lineRange / idealTicks;
+  const niceSteps = [1, 2, 2.5, 5, 10, 20, 25, 50, 100];
+  const tickStep = niceSteps.find((s) => s >= rawStep) ?? Math.ceil(rawStep / 10) * 10;
   const yTicks: number[] = [];
   for (let v = Math.round(minLine / tickStep) * tickStep; v <= maxLine; v += tickStep) yTicks.push(v);
 
@@ -87,16 +92,25 @@ export function ComboChart({ data, par = 72 }: Props) {
         </g>
       )}
 
-      {/* Bars */}
+      {/* Bars + round-count data labels */}
       {data.map((d, i) => {
         const x = xPos(i);
         const bH = barH(d.count);
         if (d.count === 0) return null;
+        const barTopY = PAD.top + CHART_H - bH;
         return (
-          <rect key={d.month}
-            x={x - barW / 2} y={PAD.top + CHART_H - bH} width={barW} height={bH}
-            fill="#E8F0E9" rx={2}
-          />
+          <g key={d.month}>
+            <rect
+              x={x - barW / 2} y={barTopY} width={barW} height={bH}
+              fill="#E8F0E9" rx={2}
+            />
+            <text
+              x={x} y={Math.max(barTopY - 5, 10)} textAnchor="middle"
+              fontSize="9" fontWeight="700" fill="#6A7680" fontFamily="Spline Sans Mono,monospace"
+            >
+              {d.count}
+            </text>
+          </g>
         );
       })}
 
