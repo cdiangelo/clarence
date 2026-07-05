@@ -143,7 +143,7 @@ export function QuickLog({ initialCourse, initialRound, onSave, onCancel }: Prop
     setHoleDataError('');
     try {
       const res = await fetch(`/api/courses/${encodeURIComponent(courseId)}/holes?holes=${holes}`);
-      const data = await res.json() as { holes: HoleData[]; source?: 'db' | 'gca' | 'none' };
+      const data = await res.json() as { holes: HoleData[]; source?: 'db' | 'gca' | 'opengolf' | 'none' };
       const relevant = data.holes.filter((h) => h.holeNumber <= holes).slice(0, holes);
       if (relevant.length < holes) {
         setHoleDataError('No complete scorecard available — using total score instead.');

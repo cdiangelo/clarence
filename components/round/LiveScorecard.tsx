@@ -98,6 +98,11 @@ export function LiveScorecard() {
             No scorecard on file — enter scores by hole
           </span>
         )}
+        {holeDataSource === 'opengolf' && (
+          <span className="text-[9px] text-ink-muted flex-shrink-0">
+            Scorecard via OpenStreetMap contributors (ODbL)
+          </span>
+        )}
       </div>
 
       {holeDataLoading && (

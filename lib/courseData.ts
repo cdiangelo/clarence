@@ -9,6 +9,7 @@
 // callers must show an honest "not available" state, not an invented one.
 import { query } from '@/db/client';
 import { gcaCourseDetail, extractHoles, findHolesByName, normalizeSearchResult, type HoleData } from './golfCourseApi';
+import { findHolesByNameOpenGolf } from './openGolfApi';
 
 const GCA_KEY = process.env.GOLF_COURSE_API_KEY ?? '';
 
@@ -29,7 +30,7 @@ export interface CourseProfile {
 
 export interface ResolvedHoles {
   holes: HoleData[];
-  source: 'db' | 'gca' | 'none';
+  source: 'db' | 'gca' | 'opengolf' | 'none';
 }
 
 export async function resolveCourseProfile(courseId: string): Promise<CourseProfile | null> {
@@ -66,7 +67,9 @@ export async function resolveCourseProfile(courseId: string): Promise<CourseProf
 //   1. Already in our DB (course_holes)
 //   2. The Golf Course API (direct id, or by-name search when the course
 //      has a local, non-GCA id)
-// If neither has it, returns an empty result. No estimation, ever.
+//   3. OpenGolfAPI (free, keyless, OSM-derived) — by-name search fallback
+//      for courses GCA doesn't have or couldn't match
+// If none of them have it, returns an empty result. No estimation, ever.
 export async function resolveHoles(courseId: string): Promise<ResolvedHoles> {
   const dbHoles = await query<{
     hole_num: number; par: number; yards_blue: number | null; yards_white: number | null; hdcp: number | null;
@@ -97,6 +100,16 @@ export async function resolveHoles(courseId: string): Promise<ResolvedHoles> {
     }
     if (rawHoles && rawHoles.length >= 9) {
       return { source: 'gca', holes: rawHoles };
+    }
+  }
+
+  if (!courseId.startsWith('gca-')) {
+    const profile = await resolveCourseProfile(courseId);
+    if (profile?.name) {
+      const rawHoles = await findHolesByNameOpenGolf(profile.name);
+      if (rawHoles && rawHoles.length >= 9) {
+        return { source: 'opengolf', holes: rawHoles };
+      }
     }
   }
 

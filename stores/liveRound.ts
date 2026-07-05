@@ -22,7 +22,7 @@ export interface LiveRoundCourse {
   slope9?: number;
 }
 
-type HoleSource = 'db' | 'gca' | 'none';
+type HoleSource = 'db' | 'gca' | 'opengolf' | 'none';
 
 interface LiveRoundState {
   active: boolean;
