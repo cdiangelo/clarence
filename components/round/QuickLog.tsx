@@ -135,22 +135,28 @@ export function QuickLog({ initialCourse, initialRound, onSave, onCancel }: Prop
     return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
   }, [query, selected]);
 
-  // Fetch hole data when switching to by-hole mode
+  // Fetch hole data when switching to by-hole mode. The API always returns
+  // a usable layout now — real (db/gca) when available, otherwise a
+  // clearly-flagged estimate built from the course's total par — so this
+  // essentially never falls back to aggregate-only entry anymore.
   const fetchHoles = useCallback(async (courseId: string) => {
     setHoleDataLoading(true);
     setHoleDataError('');
     try {
-      const res = await fetch(`/api/courses/${encodeURIComponent(courseId)}/holes`);
-      const data = await res.json() as { holes: HoleData[]; message?: string };
-      const relevant = data.holes.filter((h) => h.holeNumber <= holes);
-      if (relevant.length < (holes === 9 ? 9 : 18)) {
+      const res = await fetch(`/api/courses/${encodeURIComponent(courseId)}/holes?holes=${holes}`);
+      const data = await res.json() as { holes: HoleData[]; source?: 'db' | 'gca' | 'estimated' };
+      const relevant = data.holes.filter((h) => h.holeNumber <= holes).slice(0, holes);
+      if (relevant.length < holes) {
         setHoleDataError('No complete scorecard available — using total score instead.');
         setMode('aggregate');
         setHoleData(null);
       } else {
-        setHoleData(relevant.slice(0, holes));
+        setHoleData(relevant);
         setHoleScores(Array(holes).fill(''));
         setHolePutts(Array(holes).fill(''));
+        if (data.source === 'estimated') {
+          setHoleDataError('No official scorecard found — pars below are an estimate, not the real layout.');
+        }
       }
     } catch {
       setHoleDataError('Could not load scorecard — using total score instead.');

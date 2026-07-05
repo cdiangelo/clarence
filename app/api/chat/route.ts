@@ -5,7 +5,8 @@ import { buildGolfSystemPrompt } from '@/lib/prompts';
 import { calcHandicapIndex, calcSeasonStats } from '@/lib/handicap';
 import { query } from '@/db/client';
 import { COURSES } from '@/data/courses';
-import { gcaSearch, gcaCourseDetail, normalizeSearchResult, extractHoles, findHolesByName } from '@/lib/golfCourseApi';
+import { gcaSearch, normalizeSearchResult } from '@/lib/golfCourseApi';
+import { resolveHoles } from '@/lib/courseData';
 import { getWeather } from '@/lib/weather';
 import type { Message, TextBlock, ToolUseBlock, ToolResultBlock } from '@/lib/claude';
 
@@ -158,42 +159,15 @@ export async function POST(req: NextRequest) {
       case 'get_course_holes': {
         const { courseId } = input as { courseId: string };
         try {
-          const holes = await query<{
-            hole_num: number; par: number; yards_blue: number | null;
-            yards_white: number | null; yards_red: number | null; hdcp: number | null;
-          }>(
-            'SELECT hole_num, par, yards_blue, yards_white, yards_red, hdcp FROM course_holes WHERE course_id = $1 ORDER BY hole_num',
-            [courseId],
-          );
-          if (holes.length === 0 && GCA_KEY) {
-            if (courseId.startsWith('gca-')) {
-              // GCA courses have 'gca-{id}' prefixed IDs — hole arrays live nested
-              // inside tees.male[].holes, and the detail response wraps the course
-              // under a `course` key (see lib/golfCourseApi.ts)
-              const apiId = courseId.replace(/^gca-/, '');
-              const detail = await gcaCourseDetail(apiId, GCA_KEY);
-              const rawHoles = detail ? extractHoles(detail) : null;
-              if (rawHoles && rawHoles.length >= 9) {
-                return JSON.stringify({ courseId, holes: rawHoles });
-              }
-            } else {
-              // Seed/DB courses have their own local id, never GCA-prefixed —
-              // look up the course's name and search GCA by name instead
-              const nameRow = await query<{ name: string }>(
-                'SELECT name FROM courses WHERE id = $1', [courseId],
-              ).catch(() => []);
-              if (nameRow[0]) {
-                const rawHoles = await findHolesByName(nameRow[0].name, GCA_KEY);
-                if (rawHoles && rawHoles.length >= 9) {
-                  return JSON.stringify({ courseId, holes: rawHoles });
-                }
-              }
-            }
-          }
-          if (holes.length === 0) {
-            return JSON.stringify({ courseId, holes: [], message: 'No hole data available for this course' });
-          }
-          return JSON.stringify({ courseId, holes });
+          const { holes, source } = await resolveHoles(courseId);
+          return JSON.stringify({
+            courseId,
+            holes,
+            source,
+            note: source === 'estimated'
+              ? 'No real scorecard was found for this course — this is a plausible but ESTIMATED layout (par distribution only, not actual yardages/handicaps). Tell the player it is an estimate, not the official card.'
+              : undefined,
+          });
         } catch (e) { return `Error fetching holes: ${(e as Error).message}`; }
       }
 
