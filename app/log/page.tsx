@@ -2,16 +2,22 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth';
-import { useRoundsStore } from '@/stores/rounds';
+import { useRoundsStore, type Round } from '@/stores/rounds';
 import { AppShell } from '@/components/layout/AppShell';
-import { QuickLog, type InitialCourse } from '@/components/round/QuickLog';
+import { QuickLog, type InitialCourse, type InitialRound } from '@/components/round/QuickLog';
+
+interface SaveData {
+  courseName: string; courseId?: string; courseRating?: number; slopeRating?: number;
+  date: string; holes: 9 | 18; score: number; putts?: number; notes?: string;
+}
 
 function LogPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuthStore();
-  const { rounds, loaded, load, addRound, deleteRound } = useRoundsStore();
+  const { rounds, loaded, load, addRound, updateRound, deleteRound } = useRoundsStore();
   const [showLog, setShowLog] = useState(false);
+  const [editingRound, setEditingRound] = useState<Round | null>(null);
   const [saved, setSaved] = useState(false);
 
   // Build initial course from URL params (set by courses page)
@@ -46,17 +52,44 @@ function LogPageInner() {
 
   if (!user) return null;
 
-  async function handleSave(data: {
-    courseName: string; courseId?: string; courseRating?: number; slopeRating?: number;
-    holes: 9 | 18; score: number; putts?: number; notes?: string;
-  }) {
-    await addRound({ ...data, date: new Date().toISOString().slice(0, 10) });
+  function closeModal() {
     setShowLog(false);
+    setEditingRound(null);
+    router.replace('/log');
+  }
+
+  function openEdit(r: Round) {
+    setEditingRound(r);
+    setShowLog(true);
+  }
+
+  async function handleSave(data: SaveData) {
+    if (editingRound) {
+      await updateRound(editingRound.id, data);
+    } else {
+      await addRound(data);
+    }
+    setShowLog(false);
+    setEditingRound(null);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
     // Clear URL params after saving
     router.replace('/log');
   }
+
+  const initialRound: InitialRound | undefined = editingRound
+    ? {
+        courseId: editingRound.courseId,
+        courseName: editingRound.courseName,
+        date: editingRound.date,
+        holes: editingRound.holes,
+        score: editingRound.score,
+        courseRating: editingRound.courseRating,
+        slopeRating: editingRound.slopeRating,
+        putts: editingRound.putts,
+        notes: editingRound.notes,
+      }
+    : undefined;
 
   return (
     <AppShell>
@@ -95,7 +128,11 @@ function LogPageInner() {
                   ? (((r.score - r.courseRating) * 113) / r.slopeRating).toFixed(1)
                   : null;
               return (
-                <div key={r.id} className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3">
+                <button
+                  key={r.id}
+                  onClick={() => openEdit(r)}
+                  className="w-full text-left bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3 hover:border-turf/50 transition-colors"
+                >
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-ink truncate">{r.courseName}</div>
                     <div className="text-[10px] text-ink-muted mt-0.5">
@@ -114,13 +151,15 @@ function LogPageInner() {
                       <div className="text-[9px] text-ink-muted">{r.courseRating}/{r.slopeRating}</div>
                     )}
                   </div>
-                  <button
-                    onClick={() => { if (confirm('Delete this round?')) deleteRound(r.id); }}
-                    className="text-ink-muted hover:text-flag text-base ml-1 flex-shrink-0"
+                  <span
+                    onClick={(e) => { e.stopPropagation(); if (confirm('Delete this round?')) deleteRound(r.id); }}
+                    className="text-ink-muted hover:text-flag text-base ml-1 flex-shrink-0 px-1"
+                    role="button"
+                    aria-label="Delete round"
                   >
                     ×
-                  </button>
-                </div>
+                  </span>
+                </button>
               );
             })}
           </div>
@@ -130,9 +169,10 @@ function LogPageInner() {
           <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4">
             <div className="bg-card border border-border rounded-2xl shadow-elevated w-full max-w-sm max-h-[92vh] overflow-y-auto">
               <QuickLog
-                initialCourse={initialCourse}
+                initialCourse={editingRound ? undefined : initialCourse}
+                initialRound={initialRound}
                 onSave={handleSave}
-                onCancel={() => { setShowLog(false); router.replace('/log'); }}
+                onCancel={closeModal}
               />
             </div>
           </div>

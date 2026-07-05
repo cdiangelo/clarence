@@ -8,13 +8,6 @@ import { StandBag } from '@/components/bag/StandBag';
 import { SectionDetail } from '@/components/bag/SectionDetail';
 import { CLUBS, type ClubModel } from '@/data/clubs';
 
-const SECTION_COUNTS = (clubs: ReturnType<typeof useBagStore.getState>['clubs']) => ({
-  woods:  clubs.filter((c) => ['driver','3w','5w','7w','3h','4h','5h'].includes(c.slot)).length,
-  irons:  clubs.filter((c) => ['2i','3i','4i','5i','6i','7i','8i','9i','PW'].includes(c.slot)).length,
-  wedges: clubs.filter((c) => ['GW','AW','SW','LW','46w','48w','50w','52w','54w','56w','58w','60w'].includes(c.slot)).length,
-  putter: clubs.filter((c) => c.slot === 'putter').length,
-});
-
 export default function BagPage() {
   const router = useRouter();
   const { user } = useAuthStore();
@@ -49,8 +42,6 @@ export default function BagPage() {
   useEffect(() => () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current); }, []);
 
   if (!user) return null;
-
-  const counts = SECTION_COUNTS(clubs);
 
   function openSection(s: BagSection) {
     if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
@@ -143,7 +134,7 @@ export default function BagPage() {
         {/* Bag — top-down view with built-in section tabs */}
         <div className="flex flex-col items-center px-2 pt-1">
           <div className="w-full max-w-[340px]">
-            <StandBag counts={counts} active={activeSection} onSelect={handleBagSelect} />
+            <StandBag clubs={clubs} active={activeSection} onSelect={handleBagSelect} />
           </div>
           <div className="text-[10px] text-ink-muted mt-1 text-center">
             Tap a section of the bag, or its tab, to view clubs

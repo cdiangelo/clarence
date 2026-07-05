@@ -14,6 +14,18 @@ export interface InitialCourse {
   verified?: boolean;
 }
 
+export interface InitialRound {
+  courseId?: string;
+  courseName: string;
+  date: string;
+  holes: 9 | 18;
+  score: number;
+  courseRating?: number;
+  slopeRating?: number;
+  putts?: number;
+  notes?: string;
+}
+
 interface SearchCourse {
   id: string;
   name: string;
@@ -32,11 +44,13 @@ type ScoringMode = 'aggregate' | 'by-hole';
 
 interface Props {
   initialCourse?: InitialCourse;
+  initialRound?: InitialRound;
   onSave: (data: {
     courseName: string;
     courseId?: string;
     courseRating?: number;
     slopeRating?: number;
+    date: string;
     holes: 9 | 18;
     score: number;
     putts?: number;
@@ -45,19 +59,39 @@ interface Props {
   onCancel: () => void;
 }
 
-export function QuickLog({ initialCourse, onSave, onCancel }: Props) {
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export function QuickLog({ initialCourse, initialRound, onSave, onCancel }: Props) {
+  const isEdit = !!initialRound;
+
   // Course selection
-  const [query, setQuery] = useState(initialCourse?.name ?? '');
+  const [query, setQuery] = useState(initialRound?.courseName ?? initialCourse?.name ?? '');
   const [results, setResults] = useState<SearchCourse[]>([]);
   const [searching, setSearching] = useState(false);
-  const [selected, setSelected] = useState<InitialCourse | null>(initialCourse ?? null);
+  const [selected, setSelected] = useState<InitialCourse | null>(
+    initialRound
+      ? {
+          id: initialRound.courseId,
+          name: initialRound.courseName,
+          holes: initialRound.holes,
+          rating18: initialRound.holes === 18 ? initialRound.courseRating : undefined,
+          slope18: initialRound.holes === 18 ? initialRound.slopeRating : undefined,
+          rating9: initialRound.holes === 9 ? initialRound.courseRating : undefined,
+          slope9: initialRound.holes === 9 ? initialRound.slopeRating : undefined,
+        }
+      : initialCourse ?? null,
+  );
   const [customName, setCustomName] = useState('');
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Round settings
-  const [holes, setHoles] = useState<9 | 18>(initialCourse?.holes ?? 18);
+  const [date, setDate] = useState(initialRound?.date ?? todayISO());
+  const [holes, setHoles] = useState<9 | 18>(initialRound?.holes ?? initialCourse?.holes ?? 18);
 
-  // Scoring mode
+  // Scoring mode — by-hole entry is only offered when creating a new round;
+  // edited rounds only ever have an aggregate score to work with
   const [mode, setMode] = useState<ScoringMode>('aggregate');
   const [holeData, setHoleData] = useState<HoleData[] | null>(null);
   const [holeDataLoading, setHoleDataLoading] = useState(false);
@@ -68,9 +102,9 @@ export function QuickLog({ initialCourse, onSave, onCancel }: Props) {
   const [holePutts, setHolePutts] = useState<(number | '')[]>([]);
 
   // Aggregate
-  const [score, setScore] = useState('');
-  const [putts, setPutts] = useState('');
-  const [notes, setNotes] = useState('');
+  const [score, setScore] = useState(initialRound ? String(initialRound.score) : '');
+  const [putts, setPutts] = useState(initialRound?.putts ? String(initialRound.putts) : '');
+  const [notes, setNotes] = useState(initialRound?.notes ?? '');
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -182,6 +216,8 @@ export function QuickLog({ initialCourse, onSave, onCancel }: Props) {
       finalPutts = putts ? parseInt(putts, 10) : undefined;
     }
 
+    if (!date) { setError('Select a date'); return; }
+
     setError('');
     setSaving(true);
     try {
@@ -190,6 +226,7 @@ export function QuickLog({ initialCourse, onSave, onCancel }: Props) {
         courseId: courseForSave.id,
         courseRating,
         slopeRating,
+        date,
         holes,
         score: finalScore,
         putts: finalPutts,
@@ -227,7 +264,7 @@ export function QuickLog({ initialCourse, onSave, onCancel }: Props) {
     <div className="divide-y divide-border">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3">
-        <div className="eyebrow text-turf">Log Round</div>
+        <div className="eyebrow text-turf">{isEdit ? 'Edit Round' : 'Log Round'}</div>
         <button
           onClick={onCancel}
           className="w-7 h-7 rounded-full bg-paper flex items-center justify-center text-ink-muted hover:text-ink"
@@ -237,6 +274,18 @@ export function QuickLog({ initialCourse, onSave, onCancel }: Props) {
       </div>
 
       <div className="px-4 py-4 space-y-4">
+        {/* ── Date ── */}
+        <div>
+          <label className="block text-xs font-semibold text-ink-soft mb-1.5">Date played</label>
+          <input
+            type="date"
+            className="w-full border border-border rounded-lg px-3 py-2.5 text-sm outline-none focus:border-turf bg-white"
+            value={date}
+            max={todayISO()}
+            onChange={(e) => setDate(e.target.value)}
+          />
+        </div>
+
         {/* ── Course search ── */}
         <div>
           <label className="block text-xs font-semibold text-ink-soft mb-1.5">Course</label>
@@ -317,6 +366,9 @@ export function QuickLog({ initialCourse, onSave, onCancel }: Props) {
         </div>
 
         {/* ── Scoring mode ── */}
+        {/* By-hole entry isn't offered on edit — a saved round only ever has
+            its aggregate score, so there's nothing to reconstruct per hole */}
+        {!isEdit && (
         <div>
           <label className="block text-xs font-semibold text-ink-soft mb-1.5">Scoring</label>
           <div className="flex gap-2">
@@ -348,6 +400,7 @@ export function QuickLog({ initialCourse, onSave, onCancel }: Props) {
             <div className="text-[10px] text-ink-muted mt-1">Select a course to enable hole-by-hole scoring</div>
           )}
         </div>
+        )}
 
         {/* ── Hole data loading / error ── */}
         {holeDataLoading && (
@@ -531,7 +584,7 @@ export function QuickLog({ initialCourse, onSave, onCancel }: Props) {
             disabled={saving || holeDataLoading}
             className="flex-1 bg-turf text-white text-sm font-semibold py-2.5 rounded-xl disabled:opacity-50 hover:bg-turf-light transition-colors"
           >
-            {saving ? 'Saving…' : 'Save Round'}
+            {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Save Round'}
           </button>
         </div>
       </div>

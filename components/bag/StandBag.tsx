@@ -1,9 +1,10 @@
 'use client';
 import React from 'react';
-import type { BagSection } from '@/stores/bag';
+import type { BagClub, BagSection } from '@/stores/bag';
+import { SLOT_TO_SECTION, SLOT_ORDER } from '@/stores/bag';
 
 interface Props {
-  counts: Record<BagSection, number>;
+  clubs: BagClub[];
   active: BagSection | null;
   onSelect: (s: BagSection) => void;
 }
@@ -13,21 +14,16 @@ interface Props {
 const CX = 180;
 const CY = 180;
 
-// Outer wall (visible rim of fabric around the opening)
 const WALL_RX = 130;
 const WALL_RY = 100;
-// Inner rim (the opening itself — where club dividers + clubs live)
 const RIM_RX = 98;
 const RIM_RY = 72;
-// Radius at which club-cap circles are drawn
-const CLUB_RX = RIM_RX * 0.68;
-const CLUB_RY = RIM_RY * 0.68;
-// Radius for the outer selectable tab callouts
+const CLUB_RX = RIM_RX * 0.66;
+const CLUB_RY = RIM_RY * 0.66;
 const TAB_RX = 150;
 const TAB_RY = 120;
 
 // Slice boundaries in degrees, clockwise from top (0deg = 12 o'clock)
-// Proportioned roughly to a real bag: irons hold the most clubs, putter the fewest.
 const BOUNDS: Record<BagSection, [number, number]> = {
   woods:  [0, 60],
   irons:  [60, 210],
@@ -45,6 +41,33 @@ const SECTION_COLOR: Record<BagSection, string> = {
 
 const SECTION_ACCENT: Record<BagSection, string> = {
   woods: '#4A8A5E', irons: '#5A97D4', wedges: '#D4A820', putter: '#D86A52',
+};
+
+type ClubShape = 'driver' | 'fairway' | 'hybrid' | 'iron' | 'wedge' | 'putter';
+
+function clubShape(slot: string): ClubShape {
+  if (slot === 'driver') return 'driver';
+  if (['3w', '5w', '7w'].includes(slot)) return 'fairway';
+  if (['3h', '4h', '5h'].includes(slot)) return 'hybrid';
+  if (slot === 'putter') return 'putter';
+  if (/^\d+i$/.test(slot) || slot === 'PW') return 'iron';
+  return 'wedge';
+}
+
+// Local-space silhouettes: drawn pointing toward -y (outward, toward the rim);
+// the hosel/heel end (toward +y) faces the center hub after rotation.
+const HEAD_PATHS: Record<ClubShape, string> = {
+  driver:  'M 0,-16 C 9,-16 11.5,-9 11.5,-2 C 11.5,7 6,13.5 0,15.5 C -6,13.5 -11.5,7 -11.5,-2 C -11.5,-9 -9,-16 0,-16 Z',
+  fairway: 'M 0,-11.5 C 6.5,-11.5 8.5,-6.5 8.5,-1 C 8.5,5 4.5,9 0,10.5 C -4.5,9 -8.5,5 -8.5,-1 C -8.5,-6.5 -6.5,-11.5 0,-11.5 Z',
+  hybrid:  'M 0,-8.5 C 6,-8.5 7.5,-4.5 7.5,0 C 7.5,5 4,7.5 0,8.5 C -4,7.5 -7.5,5 -7.5,0 C -7.5,-4.5 -6,-8.5 0,-8.5 Z',
+  iron:    'M 0,-9.5 C 3,-9.5 3.6,-6.5 3.6,-2.5 L 3.6,4 C 3.6,7 2,8.5 0,9 C -2,8.5 -3.6,7 -3.6,4 L -3.6,-2.5 C -3.6,-6.5 -3,-9.5 0,-9.5 Z',
+  wedge:   'M 0,-8 C 3.3,-8 4.2,-5.3 4.2,-1.5 L 4.2,3 C 4.2,6 2.3,7.5 0,8 C -2.3,7.5 -4.2,6 -4.2,3 L -4.2,-1.5 C -4.2,-5.3 -3.3,-8 0,-8 Z',
+  putter:  'M -6,-8 Q -6,-9.3 -4.7,-9.3 L 4.7,-9.3 Q 6,-9.3 6,-8 L 6,6.5 Q 6,8.5 4,8.5 L -4,8.5 Q -6,8.5 -6,6.5 Z',
+};
+
+const HEAD_GRADIENT: Record<ClubShape, string> = {
+  driver: 'url(#g-driverhead)', fairway: 'url(#g-woodhead)', hybrid: 'url(#g-woodhead)',
+  iron: 'url(#g-ironhead)', wedge: 'url(#g-wedgehead)', putter: 'url(#g-putterhead)',
 };
 
 function polar(rx: number, ry: number, angleDeg: number) {
@@ -68,8 +91,20 @@ function clubPositions(a0: number, a1: number, n: number): number[] {
   return Array.from({ length: n }, (_, i) => lo + (i * (hi - lo)) / (n - 1));
 }
 
-export function StandBag({ counts, active, onSelect }: Props) {
+export function StandBag({ clubs, active, onSelect }: Props) {
   const sections = Object.keys(BOUNDS) as BagSection[];
+
+  const bySection: Record<BagSection, BagClub[]> = { woods: [], irons: [], wedges: [], putter: [] };
+  for (const c of clubs) {
+    bySection[SLOT_TO_SECTION[c.slot] ?? 'irons'].push(c);
+  }
+  for (const s of sections) {
+    bySection[s].sort((a, b) => SLOT_ORDER.indexOf(a.slot) - SLOT_ORDER.indexOf(b.slot));
+  }
+  const counts: Record<BagSection, number> = {
+    woods: bySection.woods.length, irons: bySection.irons.length,
+    wedges: bySection.wedges.length, putter: bySection.putter.length,
+  };
 
   return (
     <svg
@@ -96,21 +131,32 @@ export function StandBag({ counts, active, onSelect }: Props) {
           <stop offset="100%" stopColor="#1A1E22"/>
         </radialGradient>
 
-        <radialGradient id="g-cap" cx="36%" cy="30%" r="70%">
-          <stop offset="0%"   stopColor="#D3DBDE"/>
-          <stop offset="45%"  stopColor="#8B959B"/>
-          <stop offset="100%" stopColor="#454D53"/>
+        {/* Clubhead material gradients — distinct finishes per type */}
+        <radialGradient id="g-driverhead" cx="34%" cy="28%" r="75%">
+          <stop offset="0%"   stopColor="#454B51"/>
+          <stop offset="45%"  stopColor="#22262A"/>
+          <stop offset="100%" stopColor="#0A0C0E"/>
         </radialGradient>
-
-        <radialGradient id="g-puttercap" cx="36%" cy="30%" r="70%">
-          <stop offset="0%"   stopColor="#4A4E52"/>
-          <stop offset="100%" stopColor="#15171A"/>
+        <radialGradient id="g-woodhead" cx="34%" cy="28%" r="75%">
+          <stop offset="0%"   stopColor="#EEF2F4"/>
+          <stop offset="45%"  stopColor="#AAB3B9"/>
+          <stop offset="100%" stopColor="#5C646A"/>
         </radialGradient>
-
-        <linearGradient id="g-active" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%"  stopColor="currentColor" stopOpacity="0.30"/>
-          <stop offset="100%" stopColor="currentColor" stopOpacity="0.08"/>
-        </linearGradient>
+        <radialGradient id="g-ironhead" cx="34%" cy="28%" r="75%">
+          <stop offset="0%"   stopColor="#F1F4F5"/>
+          <stop offset="45%"  stopColor="#C4CCD0"/>
+          <stop offset="100%" stopColor="#7C848A"/>
+        </radialGradient>
+        <radialGradient id="g-wedgehead" cx="34%" cy="28%" r="75%">
+          <stop offset="0%"   stopColor="#8C8072"/>
+          <stop offset="45%"  stopColor="#5D5347"/>
+          <stop offset="100%" stopColor="#33291F"/>
+        </radialGradient>
+        <radialGradient id="g-putterhead" cx="34%" cy="28%" r="75%">
+          <stop offset="0%"   stopColor="#4E5256"/>
+          <stop offset="45%"  stopColor="#282B2E"/>
+          <stop offset="100%" stopColor="#101214"/>
+        </radialGradient>
 
         <clipPath id="clip-wall"><ellipse cx={CX} cy={CY} rx={WALL_RX} ry={WALL_RY}/></clipPath>
         <clipPath id="clip-rim"><ellipse cx={CX} cy={CY} rx={RIM_RX} ry={RIM_RY}/></clipPath>
@@ -128,7 +174,6 @@ export function StandBag({ counts, active, onSelect }: Props) {
       <g clipPath="url(#clip-wall)" opacity="0.05">
         <rect x="0" y="0" width="360" height="360" fill="#fff" filter="url(#f-texture)"/>
       </g>
-      {/* Specular highlight — simulated light source, upper-left */}
       <path
         d={`M ${polar(WALL_RX - 8, WALL_RY - 8, 300).x},${polar(WALL_RX - 8, WALL_RY - 8, 300).y}
             A ${WALL_RX - 8},${WALL_RY - 8} 0 0 1 ${polar(WALL_RX - 8, WALL_RY - 8, 40).x},${polar(WALL_RX - 8, WALL_RY - 8, 40).y}`}
@@ -137,11 +182,10 @@ export function StandBag({ counts, active, onSelect }: Props) {
 
       {/* ── Inner opening (tube interior) ── */}
       <ellipse cx={CX} cy={CY} rx={RIM_RX} ry={RIM_RY} fill="url(#g-interior)"/>
-      {/* Lip where wall meets opening */}
       <ellipse cx={CX} cy={CY} rx={RIM_RX} ry={RIM_RY} fill="none" stroke="#40484E" strokeWidth="1.4" opacity="0.7"/>
       <ellipse cx={CX} cy={CY} rx={WALL_RX} ry={WALL_RY} fill="none" stroke="#3A4248" strokeWidth="1.2" opacity="0.5"/>
 
-      {/* ── Section slices + clubs ── */}
+      {/* ── Section tint + dividers (behind clubheads) ── */}
       <g clipPath="url(#clip-rim)">
         {sections.map((sect) => {
           const [a0, a1] = BOUNDS[sect];
@@ -151,33 +195,13 @@ export function StandBag({ counts, active, onSelect }: Props) {
               key={`fill-${sect}`}
               d={slicePath(a0, a1, RIM_RX, RIM_RY)}
               fill={isActive ? SECTION_COLOR[sect] : 'transparent'}
-              opacity={isActive ? 0.22 : 0}
+              opacity={isActive ? 0.2 : 0}
               style={{ transition: 'opacity 0.25s' }}
             />
           );
         })}
-
-        {/* Club cap circles */}
-        {sections.map((sect) => {
-          const [a0, a1] = BOUNDS[sect];
-          const n = counts[sect] ?? 0;
-          const angles = clubPositions(a0, a1, n);
-          return angles.map((ang, i) => {
-            const p = polar(CLUB_RX, CLUB_RY, ang);
-            const isPutter = sect === 'putter';
-            const r = isPutter ? 9 : 6.5;
-            return (
-              <g key={`${sect}-${i}`}>
-                <circle cx={p.x} cy={p.y} r={r + 1.5} fill={SECTION_COLOR[sect]} opacity="0.9"/>
-                <circle cx={p.x} cy={p.y} r={r} fill={isPutter ? 'url(#g-puttercap)' : 'url(#g-cap)'} stroke="#20262b" strokeWidth="0.6"/>
-                <circle cx={p.x - r * 0.3} cy={p.y - r * 0.3} r={r * 0.28} fill="#fff" opacity="0.35"/>
-              </g>
-            );
-          });
-        })}
       </g>
 
-      {/* ── Dividers (molded plastic look) ── */}
       {([0, 60, 210, 300] as number[]).map((deg) => {
         const inner = polar(16, 12, deg);
         const outer = polar(RIM_RX, RIM_RY, deg);
@@ -190,7 +214,6 @@ export function StandBag({ counts, active, onSelect }: Props) {
         );
       })}
 
-      {/* ── Active section edge glow ── */}
       {active && (
         <g clipPath="url(#clip-rim)">
           <path
@@ -200,11 +223,40 @@ export function StandBag({ counts, active, onSelect }: Props) {
         </g>
       )}
 
+      {/* ── Realistic clubhead silhouettes, fanned outward from the hub ── */}
+      <g clipPath="url(#clip-rim)">
+        {sections.map((sect) => {
+          const [a0, a1] = BOUNDS[sect];
+          const sectionClubs = bySection[sect];
+          const angles = clubPositions(a0, a1, sectionClubs.length);
+          const shrink = sect === 'woods' && sectionClubs.length > 3 ? 0.82 : 1;
+          return sectionClubs.map((club, i) => {
+            const ang = angles[i];
+            const p = polar(CLUB_RX, CLUB_RY, ang);
+            const shape = clubShape(club.slot);
+            return (
+              <g
+                key={club.id}
+                transform={`translate(${p.x}, ${p.y}) rotate(${ang}) scale(${shrink})`}
+              >
+                <path d={HEAD_PATHS[shape]} fill={HEAD_GRADIENT[shape]} stroke={SECTION_COLOR[sect]} strokeWidth="0.9" strokeOpacity="0.8"/>
+                {/* Specular highlight */}
+                <ellipse cx={-2.5} cy={-4} rx={2.6} ry={1.6} fill="#fff" opacity="0.3" transform="rotate(-25)"/>
+                {/* Putter sightline */}
+                {shape === 'putter' && (
+                  <line x1="0" y1="-6.5" x2="0" y2="5.5" stroke="#fff" strokeWidth="1.1" opacity="0.55"/>
+                )}
+              </g>
+            );
+          });
+        })}
+      </g>
+
       {/* ── Center hub ── */}
       <circle cx={CX} cy={CY} r={14} fill="url(#g-hub)" stroke="#606870" strokeWidth="1"/>
       <circle cx={CX - 4} cy={CY - 4} r={4} fill="#fff" opacity="0.2"/>
 
-      {/* ── Click targets (slices) ── */}
+      {/* ── Click targets — section only; per-club editing lives in the sheet ── */}
       {sections.map((sect) => (
         <path
           key={`hit-${sect}`}

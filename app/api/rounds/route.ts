@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { query, queryOne } from '@/db/client';
+import { query } from '@/db/client';
 
 export async function GET() {
   const session = await getSession();
@@ -11,8 +11,11 @@ export async function GET() {
     holes: number; score: number; course_rating: number | null; slope_rating: number | null;
     putts: number | null; fir: number | null; fir_total: number | null; gir: number | null; notes: string | null;
   }>(
-    `SELECT id, course_id, course_name, date, holes, score, course_rating, slope_rating,
-            putts, fir, fir_total, gir, notes
+    // to_char forces a plain 'YYYY-MM-DD' string — the pg driver otherwise
+    // returns DATE columns as full Date objects that serialize to a full
+    // ISO timestamp, which breaks any client code that appends a time part
+    `SELECT id, course_id, course_name, to_char(date, 'YYYY-MM-DD') AS date, holes, score,
+            course_rating, slope_rating, putts, fir, fir_total, gir, notes
      FROM rounds WHERE user_id = $1 ORDER BY date DESC`,
     [session.userId],
   );
@@ -55,11 +58,12 @@ export async function POST(req: NextRequest) {
 
   try {
     const rows = await query<{
-      id: string; course_name: string; date: string; holes: number; score: number;
+      id: string; course_id: string | null; course_name: string; date: string; holes: number; score: number;
+      course_rating: number | null; slope_rating: number | null; putts: number | null; notes: string | null;
     }>(
       `INSERT INTO rounds (user_id, course_id, course_name, date, holes, score, course_rating, slope_rating, putts, fir, fir_total, gir, notes)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-       RETURNING id, course_name, date, holes, score`,
+       RETURNING id, course_id, course_name, to_char(date, 'YYYY-MM-DD') AS date, holes, score, course_rating, slope_rating, putts, notes`,
       [
         session.userId, body.courseId ?? null, body.courseName, date,
         body.holes, body.score, body.courseRating ?? null, body.slopeRating ?? null,
@@ -69,7 +73,20 @@ export async function POST(req: NextRequest) {
     );
 
     const row = rows[0];
-    return NextResponse.json({ round: { id: row.id, courseName: row.course_name, date: row.date, holes: row.holes, score: row.score } });
+    return NextResponse.json({
+      round: {
+        id: row.id,
+        courseId: row.course_id ?? undefined,
+        courseName: row.course_name,
+        date: row.date,
+        holes: row.holes as 9 | 18,
+        score: row.score,
+        courseRating: row.course_rating ?? undefined,
+        slopeRating: row.slope_rating ?? undefined,
+        putts: row.putts ?? undefined,
+        notes: row.notes ?? undefined,
+      },
+    });
   } catch (err) {
     console.error('[/api/rounds POST]', err);
     return NextResponse.json({ error: 'Failed to save round' }, { status: 500 });

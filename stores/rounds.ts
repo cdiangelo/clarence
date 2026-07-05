@@ -21,10 +21,11 @@ interface RoundsStore {
   loaded: boolean;
   load: () => Promise<void>;
   addRound: (r: Omit<Round, 'id'>) => Promise<void>;
+  updateRound: (id: string, updates: Partial<Omit<Round, 'id'>>) => Promise<void>;
   deleteRound: (id: string) => Promise<void>;
 }
 
-export const useRoundsStore = create<RoundsStore>()((set, get) => ({
+export const useRoundsStore = create<RoundsStore>()((set) => ({
   rounds: [],
   loaded: false,
 
@@ -49,6 +50,17 @@ export const useRoundsStore = create<RoundsStore>()((set, get) => ({
     if (!res.ok) throw new Error((await res.json()).error ?? 'Failed to save round');
     const data = await res.json();
     set((s) => ({ rounds: [data.round, ...s.rounds] }));
+  },
+
+  updateRound: async (id, updates) => {
+    const res = await fetch(`/api/rounds/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+    if (!res.ok) throw new Error((await res.json()).error ?? 'Failed to update round');
+    const data = await res.json();
+    set((s) => ({ rounds: s.rounds.map((r) => (r.id === id ? data.round : r)) }));
   },
 
   deleteRound: async (id) => {
