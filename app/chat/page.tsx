@@ -1,12 +1,13 @@
 'use client';
-import React, { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth';
 import { AppShell } from '@/components/layout/AppShell';
 import { ChatInterface } from '@/components/chat/ChatInterface';
 
-export default function ChatPage() {
+function ChatPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuthStore();
 
   useEffect(() => {
@@ -15,11 +16,21 @@ export default function ChatPage() {
 
   if (!user) return null;
 
+  const initialMessage = searchParams.get('q') ?? undefined;
+
   return (
     <AppShell>
       <div className="h-full">
-        <ChatInterface />
+        <ChatInterface initialMessage={initialMessage} />
       </div>
     </AppShell>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense>
+      <ChatPageInner />
+    </Suspense>
   );
 }

@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth';
 import { AppShell } from '@/components/layout/AppShell';
@@ -52,6 +52,25 @@ export default function CoursesPage() {
 
   if (!user) return null;
 
+  function logRound(c: Course) {
+    const params = new URLSearchParams({
+      courseId: c.id,
+      courseName: c.name,
+      par: String(c.par),
+      holes: String(c.holes),
+    });
+    if (c.rating18) params.set('rating18', String(c.rating18));
+    if (c.slope18)  params.set('slope18',  String(c.slope18));
+    if (c.rating9)  params.set('rating9',  String(c.rating9));
+    if (c.slope9)   params.set('slope9',   String(c.slope9));
+    router.push(`/log?${params.toString()}`);
+  }
+
+  function askCaddie(c: Course) {
+    const q = encodeURIComponent(`Tell me about ${c.name} in ${c.city}, ${c.state} — tips for strategy, tough holes, and how to score well there.`);
+    router.push(`/chat?q=${q}`);
+  }
+
   return (
     <AppShell>
       <div className="px-4 py-5 space-y-4">
@@ -77,11 +96,13 @@ export default function CoursesPage() {
           <div className="space-y-2">
             {results.map((c) => (
               <div key={c.id} className="bg-card border border-border rounded-xl px-4 py-3">
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start justify-between gap-2 mb-3">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-ink">{c.name}</span>
-                      {!c.verified && <span className="text-[9px] text-gold font-display tracking-wider">~APPROX</span>}
+                      {!c.verified && (
+                        <span className="text-[9px] text-gold font-display tracking-wider">~APPROX</span>
+                      )}
                     </div>
                     <div className="text-[10px] text-ink-muted mt-0.5">{c.city}, {c.state}</div>
                   </div>
@@ -94,6 +115,28 @@ export default function CoursesPage() {
                       <div className="text-[9px] text-ink-muted stat-num">{c.rating9}/{c.slope9} (9H)</div>
                     )}
                   </div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => logRound(c)}
+                    className="flex-1 flex items-center justify-center gap-1.5 bg-turf text-white text-[10px] font-display tracking-wider py-1.5 rounded-lg hover:bg-turf-light transition-colors"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                      <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                    </svg>
+                    LOG ROUND
+                  </button>
+                  <button
+                    onClick={() => askCaddie(c)}
+                    className="flex-1 flex items-center justify-center gap-1.5 border border-turf text-turf text-[10px] font-display tracking-wider py-1.5 rounded-lg hover:bg-turf-wash transition-colors"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                      <path d="M9 5C9 7.21 7.21 9 5 9c-.7 0-1.36-.16-1.93-.44L1 9l.48-2.1A4 4 0 0 1 1 5C1 2.79 2.79 1 5 1s4 1.79 4 4z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
+                    </svg>
+                    ASK CADDIE
+                  </button>
                 </div>
               </div>
             ))}
@@ -108,9 +151,11 @@ export default function CoursesPage() {
         )}
 
         {query.trim().length < 2 && (
-          <div className="text-center py-8">
+          <div className="text-center py-8 space-y-2">
             <div className="text-ink-muted text-sm">Search 1,000s of courses</div>
-            <div className="text-ink-muted text-xs mt-1">Type 2+ characters to search</div>
+            <div className="text-ink-muted text-xs">
+              Type 2+ characters · then Log Round or Ask Caddie
+            </div>
           </div>
         )}
       </div>

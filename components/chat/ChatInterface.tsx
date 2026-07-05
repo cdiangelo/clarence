@@ -12,11 +12,21 @@ const QUICK_PROMPTS = [
   'How do I approach a tight par 4 playing into the wind?',
 ];
 
-export function ChatInterface() {
+export function ChatInterface({ initialMessage }: { initialMessage?: string }) {
   const { messages, isLoading, send, clear } = useChatStore();
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const didSendInitial = useRef(false);
+
+  // Auto-send initial message from URL param (e.g. from courses page)
+  useEffect(() => {
+    if (initialMessage && !didSendInitial.current && !isLoading && messages.length === 0) {
+      didSendInitial.current = true;
+      send(initialMessage);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
