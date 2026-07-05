@@ -66,10 +66,13 @@ CREATE TABLE IF NOT EXISTS clubs_catalog (
 );
 
 -- ─── ROUNDS ───────────────────────────────────────────────────
+-- course_id is NOT a foreign key: rounds can be logged against courses
+-- found live via the Golf Course API or seed data that are never persisted
+-- into the `courses` table. course_name is the denormalized source of truth.
 CREATE TABLE IF NOT EXISTS rounds (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  course_id   TEXT REFERENCES courses(id),
+  course_id   TEXT,
   course_name TEXT NOT NULL,             -- denormalized for display
   date        DATE NOT NULL,
   holes       INT NOT NULL DEFAULT 18,   -- 9 or 18
@@ -83,6 +86,9 @@ CREATE TABLE IF NOT EXISTS rounds (
   notes       TEXT,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Drop the FK constraint if it already exists on a previously-migrated database
+ALTER TABLE rounds DROP CONSTRAINT IF EXISTS rounds_course_id_fkey;
 
 -- ─── ROUND HOLES ──────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS round_holes (

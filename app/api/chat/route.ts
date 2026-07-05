@@ -31,7 +31,8 @@ export async function POST(req: NextRequest) {
       [session.userId],
     ).catch(() => []),
     query<{ slot: string; carry: number | null; carry_is_estimate: boolean; brand: string | null; model: string | null }>(
-      `SELECT bc.slot, bc.carry, bc.carry_is_estimate, cc.brand, cc.model
+      `SELECT bc.slot, bc.carry, bc.carry_is_estimate,
+              COALESCE(bc.brand, cc.brand) AS brand, COALESCE(bc.model, cc.model) AS model
        FROM bag_clubs bc LEFT JOIN clubs_catalog cc ON cc.id = bc.catalog_id
        WHERE bc.user_id = $1`,
       [session.userId],

@@ -53,20 +53,25 @@ export async function POST(req: NextRequest) {
 
   const date = body.date ?? new Date().toISOString().slice(0, 10);
 
-  const rows = await query<{
-    id: string; course_name: string; date: string; holes: number; score: number;
-  }>(
-    `INSERT INTO rounds (user_id, course_id, course_name, date, holes, score, course_rating, slope_rating, putts, fir, fir_total, gir, notes)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-     RETURNING id, course_name, date, holes, score`,
-    [
-      session.userId, body.courseId ?? null, body.courseName, date,
-      body.holes, body.score, body.courseRating ?? null, body.slopeRating ?? null,
-      body.putts ?? null, body.fir ?? null, body.firTotal ?? null, body.gir ?? null,
-      body.notes ?? null,
-    ],
-  );
+  try {
+    const rows = await query<{
+      id: string; course_name: string; date: string; holes: number; score: number;
+    }>(
+      `INSERT INTO rounds (user_id, course_id, course_name, date, holes, score, course_rating, slope_rating, putts, fir, fir_total, gir, notes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+       RETURNING id, course_name, date, holes, score`,
+      [
+        session.userId, body.courseId ?? null, body.courseName, date,
+        body.holes, body.score, body.courseRating ?? null, body.slopeRating ?? null,
+        body.putts ?? null, body.fir ?? null, body.firTotal ?? null, body.gir ?? null,
+        body.notes ?? null,
+      ],
+    );
 
-  const row = rows[0];
-  return NextResponse.json({ round: { id: row.id, courseName: row.course_name, date: row.date, holes: row.holes, score: row.score } });
+    const row = rows[0];
+    return NextResponse.json({ round: { id: row.id, courseName: row.course_name, date: row.date, holes: row.holes, score: row.score } });
+  } catch (err) {
+    console.error('[/api/rounds POST]', err);
+    return NextResponse.json({ error: 'Failed to save round' }, { status: 500 });
+  }
 }

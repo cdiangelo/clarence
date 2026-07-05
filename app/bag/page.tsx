@@ -15,13 +15,6 @@ const SECTION_COUNTS = (clubs: ReturnType<typeof useBagStore.getState>['clubs'])
   putter: clubs.filter((c) => c.slot === 'putter').length,
 });
 
-const SECTION_META: Record<BagSection, { label: string; color: string; accent: string }> = {
-  woods:  { label: 'Woods',  color: '#2F6B44', accent: '#4A8A5E' },
-  irons:  { label: 'Irons',  color: '#3B7DC4', accent: '#5A97D4' },
-  wedges: { label: 'Wedges', color: '#B8860B', accent: '#D4A820' },
-  putter: { label: 'Putter', color: '#C2492E', accent: '#D86A52' },
-};
-
 export default function BagPage() {
   const router = useRouter();
   const { user } = useAuthStore();
@@ -36,9 +29,17 @@ export default function BagPage() {
   const [showAddClub, setShowAddClub] = useState(false);
   const [addSlot, setAddSlot] = useState('');
   const [addCatalogId, setAddCatalogId] = useState('');
+  const [addBrand, setAddBrand] = useState('');
+  const [addModel, setAddModel] = useState('');
+  const [addLoft, setAddLoft] = useState('');
   const [addCarry, setAddCarry] = useState('');
   const [addError, setAddError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  function resetAddForm() {
+    setAddSlot(''); setAddCatalogId(''); setAddBrand(''); setAddModel('');
+    setAddLoft(''); setAddCarry(''); setAddError('');
+  }
 
   useEffect(() => {
     if (!user) { router.replace('/auth'); return; }
@@ -71,22 +72,30 @@ export default function BagPage() {
     if (!addSlot) { setAddError('Select a slot'); return; }
     setSaving(true); setAddError('');
     try {
-      const cat = CLUBS.find((c) => c.id === addCatalogId);
       await addClub({
         catalogId: addCatalogId || undefined,
         slot: addSlot,
-        brand: cat?.brand,
-        model: cat?.model,
+        brand: addBrand.trim() || undefined,
+        model: addModel.trim() || undefined,
+        loft: addLoft ? parseFloat(addLoft) : undefined,
         carry: addCarry ? parseInt(addCarry, 10) : undefined,
         carryIsEstimate: !addCarry,
       });
       setShowAddClub(false);
-      setAddSlot(''); setAddCatalogId(''); setAddCarry('');
+      resetAddForm();
     } catch (e) {
       setAddError(e instanceof Error ? e.message : 'Failed to add club');
     } finally {
       setSaving(false);
     }
+  }
+
+  function selectCatalogClub(id: string) {
+    setAddCatalogId(id);
+    const cat = CLUBS.find((c) => c.id === id);
+    setAddBrand(cat?.brand ?? '');
+    setAddModel(cat?.model ?? '');
+    setAddLoft(String(cat?.stockLoft ?? cat?.stock7iLoft ?? ''));
   }
 
   const allSlots = [
@@ -131,48 +140,13 @@ export default function BagPage() {
           </button>
         </div>
 
-        {/* Bag + chips */}
-        <div className="flex flex-col items-center px-4 pt-1">
-          {/* Stand bag SVG */}
-          <div className="w-full max-w-[240px]">
+        {/* Bag — top-down view with built-in section tabs */}
+        <div className="flex flex-col items-center px-2 pt-1">
+          <div className="w-full max-w-[340px]">
             <StandBag counts={counts} active={activeSection} onSelect={handleBagSelect} />
           </div>
-
-          {/* Section chips */}
-          <div className="mt-5 w-full max-w-[320px] grid grid-cols-4 gap-2">
-            {(Object.entries(SECTION_META) as [BagSection, typeof SECTION_META[BagSection]][]).map(
-              ([s, meta]) => {
-                const isActive = activeSection === s;
-                return (
-                  <button
-                    key={s}
-                    onClick={() => handleBagSelect(s)}
-                    className="flex flex-col items-center py-2.5 rounded-xl border transition-all active:scale-95"
-                    style={
-                      isActive
-                        ? {
-                            backgroundColor: meta.color + '14',
-                            borderColor: meta.color + '50',
-                          }
-                        : { backgroundColor: '#FFFFFF', borderColor: '#E2E0D8' }
-                    }
-                  >
-                    <div
-                      className="text-sm font-display font-extrabold stat-num leading-none"
-                      style={{ color: isActive ? meta.color : '#9BA3A5' }}
-                    >
-                      {counts[s]}
-                    </div>
-                    <div
-                      className="text-[8px] font-display tracking-widest mt-0.5 uppercase leading-none"
-                      style={{ color: isActive ? meta.accent : '#9BA3A5' }}
-                    >
-                      {meta.label}
-                    </div>
-                  </button>
-                );
-              }
-            )}
+          <div className="text-[10px] text-ink-muted mt-1 text-center">
+            Tap a section of the bag, or its tab, to view clubs
           </div>
         </div>
       </div>
@@ -209,14 +183,11 @@ export default function BagPage() {
       {/* Add club modal */}
       {showAddClub && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-2xl shadow-elevated w-full max-w-sm p-5 space-y-4">
+          <div className="bg-card border border-border rounded-2xl shadow-elevated w-full max-w-sm p-5 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <div className="eyebrow text-turf">Add Club</div>
               <button
-                onClick={() => {
-                  setShowAddClub(false);
-                  setAddSlot(''); setAddCatalogId(''); setAddCarry(''); setAddError('');
-                }}
+                onClick={() => { setShowAddClub(false); resetAddForm(); }}
                 className="w-7 h-7 rounded-full bg-paper flex items-center justify-center text-ink-muted hover:text-ink text-base leading-none"
               >
                 ×
@@ -228,7 +199,7 @@ export default function BagPage() {
               <select
                 className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-paper outline-none focus:border-turf"
                 value={addSlot}
-                onChange={(e) => { setAddSlot(e.target.value); setAddCatalogId(''); }}
+                onChange={(e) => { setAddSlot(e.target.value); setAddCatalogId(''); setAddBrand(''); setAddModel(''); setAddLoft(''); }}
               >
                 <option value="">Select slot…</option>
                 {allSlots.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -238,42 +209,84 @@ export default function BagPage() {
             {addSlot && filteredCatalog.length > 0 && (
               <div>
                 <label className="block text-xs font-semibold text-ink-soft mb-1">
-                  Model <span className="text-ink-muted font-normal">(optional)</span>
+                  Quick pick from catalog <span className="text-ink-muted font-normal">(optional)</span>
                 </label>
                 <select
                   className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-paper outline-none focus:border-turf"
                   value={addCatalogId}
-                  onChange={(e) => setAddCatalogId(e.target.value)}
+                  onChange={(e) => (e.target.value ? selectCatalogClub(e.target.value) : setAddCatalogId(''))}
                 >
-                  <option value="">Generic / custom</option>
+                  <option value="">— choose to autofill, or type below —</option>
                   {filteredCatalog.map((c: ClubModel) => (
                     <option key={c.id} value={c.id}>{c.brand} {c.model} ({c.year})</option>
                   ))}
                 </select>
+                <div className="text-[10px] text-ink-muted mt-1">
+                  Not in the list? Just type the brand and model yourself below — any club works.
+                </div>
               </div>
             )}
 
-            <div>
-              <label className="block text-xs font-semibold text-ink-soft mb-1">
-                Carry distance <span className="text-ink-muted font-normal">(yd, optional)</span>
-              </label>
-              <input
-                type="number"
-                className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-paper outline-none focus:border-turf"
-                placeholder="Leave blank to auto-estimate"
-                value={addCarry}
-                onChange={(e) => setAddCarry(e.target.value)}
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-ink-soft mb-1">
+                  Brand <span className="text-ink-muted font-normal">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-paper outline-none focus:border-turf"
+                  placeholder="e.g. Callaway"
+                  value={addBrand}
+                  onChange={(e) => setAddBrand(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-ink-soft mb-1">
+                  Model <span className="text-ink-muted font-normal">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-paper outline-none focus:border-turf"
+                  placeholder="e.g. Big Bertha"
+                  value={addModel}
+                  onChange={(e) => setAddModel(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-ink-soft mb-1">
+                  Loft <span className="text-ink-muted font-normal">(°, optional)</span>
+                </label>
+                <input
+                  type="number"
+                  step="0.5"
+                  className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-paper outline-none focus:border-turf"
+                  placeholder="e.g. 10.5"
+                  value={addLoft}
+                  onChange={(e) => setAddLoft(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-ink-soft mb-1">
+                  Carry <span className="text-ink-muted font-normal">(yd, optional)</span>
+                </label>
+                <input
+                  type="number"
+                  className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-paper outline-none focus:border-turf"
+                  placeholder="Auto-estimate"
+                  value={addCarry}
+                  onChange={(e) => setAddCarry(e.target.value)}
+                />
+              </div>
             </div>
 
             {addError && <p className="text-xs text-flag">{addError}</p>}
 
             <div className="flex gap-2 pt-1">
               <button
-                onClick={() => {
-                  setShowAddClub(false);
-                  setAddSlot(''); setAddCatalogId(''); setAddCarry(''); setAddError('');
-                }}
+                onClick={() => { setShowAddClub(false); resetAddForm(); }}
                 className="flex-1 border border-border text-ink-soft text-sm font-semibold py-2.5 rounded-xl hover:border-turf/50 transition-colors"
               >
                 Cancel
