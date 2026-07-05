@@ -2,6 +2,7 @@
 import React from 'react';
 import type { BagClub, BagSection } from '@/stores/bag';
 import { SLOT_TO_SECTION, SLOT_ORDER } from '@/stores/bag';
+import { clubShape, type ClubShape } from '@/lib/clubShape';
 
 interface Props {
   clubs: BagClub[];
@@ -43,31 +44,18 @@ const SECTION_ACCENT: Record<BagSection, string> = {
   woods: '#4A8A5E', irons: '#5A97D4', wedges: '#D4A820', putter: '#D86A52',
 };
 
-type ClubShape = 'driver' | 'fairway' | 'hybrid' | 'iron' | 'wedge' | 'putter';
-
-function clubShape(slot: string): ClubShape {
-  if (slot === 'driver') return 'driver';
-  if (['3w', '5w', '7w'].includes(slot)) return 'fairway';
-  if (['3h', '4h', '5h'].includes(slot)) return 'hybrid';
-  if (slot === 'putter') return 'putter';
-  if (/^\d+i$/.test(slot) || slot === 'PW') return 'iron';
-  return 'wedge';
-}
-
-// Local-space silhouettes: drawn pointing toward -y (outward, toward the rim);
-// the hosel/heel end (toward +y) faces the center hub after rotation.
-const HEAD_PATHS: Record<ClubShape, string> = {
-  driver:  'M 0,-16 C 9,-16 11.5,-9 11.5,-2 C 11.5,7 6,13.5 0,15.5 C -6,13.5 -11.5,7 -11.5,-2 C -11.5,-9 -9,-16 0,-16 Z',
-  fairway: 'M 0,-11.5 C 6.5,-11.5 8.5,-6.5 8.5,-1 C 8.5,5 4.5,9 0,10.5 C -4.5,9 -8.5,5 -8.5,-1 C -8.5,-6.5 -6.5,-11.5 0,-11.5 Z',
-  hybrid:  'M 0,-8.5 C 6,-8.5 7.5,-4.5 7.5,0 C 7.5,5 4,7.5 0,8.5 C -4,7.5 -7.5,5 -7.5,0 C -7.5,-4.5 -6,-8.5 0,-8.5 Z',
-  iron:    'M 0,-9.5 C 3,-9.5 3.6,-6.5 3.6,-2.5 L 3.6,4 C 3.6,7 2,8.5 0,9 C -2,8.5 -3.6,7 -3.6,4 L -3.6,-2.5 C -3.6,-6.5 -3,-9.5 0,-9.5 Z',
-  wedge:   'M 0,-8 C 3.3,-8 4.2,-5.3 4.2,-1.5 L 4.2,3 C 4.2,6 2.3,7.5 0,8 C -2.3,7.5 -4.2,6 -4.2,3 L -4.2,-1.5 C -4.2,-5.3 -3.3,-8 0,-8 Z',
-  putter:  'M -6,-8 Q -6,-9.3 -4.7,-9.3 L 4.7,-9.3 Q 6,-9.3 6,-8 L 6,6.5 Q 6,8.5 4,8.5 L -4,8.5 Q -6,8.5 -6,6.5 Z',
-};
-
+// At the ~15px this graphic renders each club, neither a photo nor a
+// per-type silhouette reads clearly (tested — both become an unrecognizable
+// blob). So the overview shows clean, larger, material-toned dots grouped
+// by section color; genuine clubhead photos live in the section detail
+// sheet instead, where there's enough room (48px+) for them to actually read.
 const HEAD_GRADIENT: Record<ClubShape, string> = {
   driver: 'url(#g-driverhead)', fairway: 'url(#g-woodhead)', hybrid: 'url(#g-woodhead)',
   iron: 'url(#g-ironhead)', wedge: 'url(#g-wedgehead)', putter: 'url(#g-putterhead)',
+};
+
+const HEAD_RADIUS: Record<ClubShape, number> = {
+  driver: 8.5, fairway: 7, hybrid: 6.5, iron: 5.5, wedge: 5.5, putter: 6.5,
 };
 
 function polar(rx: number, ry: number, angleDeg: number) {
@@ -234,18 +222,13 @@ export function StandBag({ clubs, active, onSelect }: Props) {
             const ang = angles[i];
             const p = polar(CLUB_RX, CLUB_RY, ang);
             const shape = clubShape(club.slot);
+            const r = HEAD_RADIUS[shape] * shrink;
+
             return (
-              <g
-                key={club.id}
-                transform={`translate(${p.x}, ${p.y}) rotate(${ang}) scale(${shrink})`}
-              >
-                <path d={HEAD_PATHS[shape]} fill={HEAD_GRADIENT[shape]} stroke={SECTION_COLOR[sect]} strokeWidth="0.9" strokeOpacity="0.8"/>
-                {/* Specular highlight */}
-                <ellipse cx={-2.5} cy={-4} rx={2.6} ry={1.6} fill="#fff" opacity="0.3" transform="rotate(-25)"/>
-                {/* Putter sightline */}
-                {shape === 'putter' && (
-                  <line x1="0" y1="-6.5" x2="0" y2="5.5" stroke="#fff" strokeWidth="1.1" opacity="0.55"/>
-                )}
+              <g key={club.id} transform={`translate(${p.x}, ${p.y})`}>
+                <circle r={r + 1.3} fill={SECTION_COLOR[sect]} opacity="0.9" />
+                <circle r={r} fill={HEAD_GRADIENT[shape]} stroke="#0B0D0F" strokeWidth="0.6" />
+                <circle cx={-r * 0.32} cy={-r * 0.32} r={r * 0.32} fill="#fff" opacity="0.35" />
               </g>
             );
           });
