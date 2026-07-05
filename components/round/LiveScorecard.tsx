@@ -14,8 +14,8 @@ function holeScoreColor(score: number | '', par?: number): string {
 
 export function LiveScorecard() {
   const {
-    course, holes, roundType, date, holeData, holeDataSource, holeDataLoading,
-    scores, setScore, setRoundType, setDate, discard,
+    course, holes, roundType, date, teeOptions, teeOptionsLoading, selectedTeeId, selectTee,
+    holeData, holeDataSource, holeDataLoading, scores, setScore, setRoundType, setDate, discard,
   } = useLiveRoundStore();
   const { addRound } = useRoundsStore();
 
@@ -24,6 +24,9 @@ export function LiveScorecard() {
   const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   if (!course) return null;
+
+  const loading = holeDataLoading || teeOptionsLoading;
+  const showTeePicker = !loading && !!teeOptions && teeOptions.length > 1 && !selectedTeeId;
 
   const enteredScores = scores.filter((s) => s !== '').map(Number);
   const runningTotal = enteredScores.reduce((a, b) => a + b, 0);
@@ -105,17 +108,42 @@ export function LiveScorecard() {
         )}
       </div>
 
-      {holeDataLoading && (
+      {loading && (
         <div className="flex items-center gap-2 text-sm text-ink-soft py-6 px-4">
           <div className="w-4 h-4 border-2 border-turf/30 border-t-turf rounded-full animate-spin flex-shrink-0" />
           Loading scorecard…
         </div>
       )}
 
+      {/* Tee picker — shown once, only when the course has more than one
+          real tee set. Selecting one applies both its yardages AND its
+          rating/slope to the round, since that's what actually drives the
+          WHS differential. */}
+      {showTeePicker && (
+        <div className="px-4 py-3">
+          <div className="text-[10px] text-ink-muted mb-2">Which tees did you play?</div>
+          <div className="space-y-1.5">
+            {teeOptions!.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => selectTee(t.id)}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-border hover:border-turf/50 hover:bg-turf-wash transition-colors text-left"
+              >
+                <span className="text-sm font-semibold text-ink">{t.name}</span>
+                <span className="text-[10px] text-ink-muted stat-num">
+                  Par {t.par}
+                  {t.rating18 && t.slope18 ? ` · ${t.rating18.toFixed(1)}/${t.slope18}` : ''}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Combined hole cards: condensed layout visual + score entry, one
           horizontally-scrolling row, real data only (par/yardage omitted
           entirely for holes we have no scorecard for) */}
-      {holeData && !holeDataLoading && (
+      {!showTeePicker && holeData && !loading && (
         <div className="px-4 py-3">
           <div className="text-[10px] text-ink-muted mb-2">
             {totalPar != null ? `Par ${totalPar}` : ''}

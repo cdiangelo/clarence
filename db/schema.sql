@@ -48,6 +48,38 @@ CREATE TABLE IF NOT EXISTS course_holes (
   UNIQUE(course_id, hole_num)
 );
 
+-- ─── COURSE TEES ──────────────────────────────────────────────
+-- Real courses have multiple tee sets (Blue/White/Gold/Red, etc.), each
+-- with its own rating/slope and per-hole yardage. A single course-level
+-- rating18/slope18 (as on `courses`) is only ever correct for whichever
+-- tee that happened to be recorded from — using it unconditionally for
+-- every round misrepresents WHS differentials for anyone playing a
+-- different tee. These tables let a course carry N named tees, each with
+-- its own hole-by-hole yardage, so the player can pick the one they
+-- actually played.
+CREATE TABLE IF NOT EXISTS course_tees (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  course_id   TEXT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,             -- e.g. 'Blue', 'Championship'
+  gender      TEXT,                      -- 'male' | 'female' | null
+  rating18    DOUBLE PRECISION,
+  slope18     INT,
+  rating9     DOUBLE PRECISION,
+  slope9      INT,
+  holes_count INT NOT NULL DEFAULT 18,
+  sort_order  INT NOT NULL DEFAULT 0,
+  UNIQUE(course_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS course_tee_holes (
+  tee_id      UUID NOT NULL REFERENCES course_tees(id) ON DELETE CASCADE,
+  hole_num    INT NOT NULL,
+  par         INT NOT NULL,
+  yardage     INT,
+  hdcp        INT,
+  PRIMARY KEY (tee_id, hole_num)
+);
+
 -- ─── CLUBS CATALOG ────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS clubs_catalog (
   id          TEXT PRIMARY KEY,
@@ -174,3 +206,4 @@ CREATE INDEX IF NOT EXISTS idx_agent_cache_key ON agent_cache(key);
 CREATE INDEX IF NOT EXISTS idx_chat_sessions_user ON chat_sessions(user_id, updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_user_documents_user ON user_documents(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_course_tees_course ON course_tees(course_id, sort_order);

@@ -49,8 +49,29 @@ export interface HoleData {
   handicap?: number;
 }
 
+// A single tee set with its own rating/slope and hole-by-hole yardage — real
+// courses have several of these (Blue/White/Gold/Red...), each producing a
+// meaningfully different WHS differential, so the player has to pick one
+// rather than the app silently assuming a default.
+export interface TeeData {
+  name: string;
+  gender?: 'male' | 'female';
+  rating18?: number;
+  slope18?: number;
+  par: number;
+  holesCount: 9 | 18;
+  holes: HoleData[];
+}
+
+function allTees(tees?: { male?: GcaTeeRaw[]; female?: GcaTeeRaw[] }): { tee: GcaTeeRaw; gender: 'male' | 'female' }[] {
+  return [
+    ...(tees?.male ?? []).map((tee) => ({ tee, gender: 'male' as const })),
+    ...(tees?.female ?? []).map((tee) => ({ tee, gender: 'female' as const })),
+  ];
+}
+
 function pickTee(tees?: { male?: GcaTeeRaw[]; female?: GcaTeeRaw[] }): GcaTeeRaw | undefined {
-  const list = [...(tees?.male ?? []), ...(tees?.female ?? [])];
+  const list = allTees(tees).map((t) => t.tee);
   const blue = list.find((t) => /blue/i.test(t.tee_name ?? ''));
   const white = list.find((t) => /white/i.test(t.tee_name ?? ''));
   return blue ?? white ?? list[0];
@@ -73,15 +94,30 @@ export function normalizeSearchResult(c: GcaCourseRaw): NormalizedCourse {
   };
 }
 
-export function extractHoles(c: GcaCourseRaw): HoleData[] | null {
-  const tee = pickTee(c.tees);
-  if (!tee?.holes || tee.holes.length < 9) return null;
-  return tee.holes.map((h, i) => ({
-    holeNumber: i + 1,
-    par: h.par ?? 4,
-    yardage: h.yardage,
-    handicap: h.handicap,
-  }));
+// Every named tee that has a genuinely complete hole-by-hole scorecard —
+// tees with fewer than 9 holes of data are dropped rather than included
+// with fabricated gaps.
+export function extractAllTees(c: GcaCourseRaw): TeeData[] {
+  const out: TeeData[] = [];
+  for (const { tee, gender } of allTees(c.tees)) {
+    if (!tee.holes || tee.holes.length < 9) continue;
+    const holes = tee.holes.map((h, i) => ({
+      holeNumber: i + 1,
+      par: h.par ?? 4,
+      yardage: h.yardage,
+      handicap: h.handicap,
+    }));
+    out.push({
+      name: tee.tee_name ?? (gender === 'female' ? "Women's" : "Men's"),
+      gender,
+      rating18: tee.course_rating,
+      slope18: tee.slope_rating,
+      par: tee.par_total ?? holes.reduce((s, h) => s + h.par, 0),
+      holesCount: tee.number_of_holes === 9 ? 9 : 18,
+      holes,
+    });
+  }
+  return out;
 }
 
 export async function gcaSearch(query: string, apiKey: string): Promise<GcaCourseRaw[]> {
@@ -123,9 +159,10 @@ export async function gcaCourseDetail(id: string, apiKey: string): Promise<GcaCo
 // Seed/DB courses have their own local ids (e.g. 'harborside-port'), never
 // 'gca-' prefixed, so get_course_holes has no id to hand the API directly —
 // even though the real course very likely exists there too. This bridges
-// the gap by searching GCA BY NAME and pulling holes from whatever it finds,
-// rather than requiring the course to have originated from a GCA search.
-export async function findHolesByName(courseName: string, apiKey: string): Promise<HoleData[] | null> {
+// the gap by searching GCA BY NAME and pulling every tee's scorecard from
+// whatever it finds, rather than requiring the course to have originated
+// from a GCA search.
+export async function findTeesByName(courseName: string, apiKey: string): Promise<TeeData[] | null> {
   if (!apiKey) return null;
 
   // Local names often append the specific track after a dash — e.g.
@@ -145,7 +182,7 @@ export async function findHolesByName(courseName: string, apiKey: string): Promi
     results = await gcaSearch(courseName, apiKey);
   }
   if (results.length === 0) {
-    console.error('[findHolesByName] no GCA search results for', { courseName, baseName });
+    console.error('[findTeesByName] no GCA search results for', { courseName, baseName });
     return null;
   }
 
@@ -160,9 +197,10 @@ export async function findHolesByName(courseName: string, apiKey: string): Promi
 
   const detail = await gcaCourseDetail(String(best.id), apiKey);
   if (!detail) return null;
-  const holes = extractHoles(detail);
-  if (!holes) {
-    console.error('[findHolesByName] matched course but GCA has no hole-level data', { courseName, matchedId: best.id, matchedName: best.club_name });
+  const tees = extractAllTees(detail);
+  if (tees.length === 0) {
+    console.error('[findTeesByName] matched course but GCA has no hole-level data', { courseName, matchedId: best.id, matchedName: best.club_name });
+    return null;
   }
-  return holes;
+  return tees;
 }

@@ -1,5 +1,5 @@
 // Client for OpenGolfAPI (opengolfapi.org) — a free, keyless, OSM-derived
-// open golf course database. Used as a third fallback tier in resolveHoles(),
+// open golf course database. Used as a third fallback tier in resolveTees(),
 // behind our own DB and GolfCourseAPI, for courses neither of those cover.
 //
 // IMPORTANT: this integration has NOT been exercised against the live API —
@@ -10,7 +10,7 @@
 // than guess at field names and risk emitting wrong-but-plausible data.
 // Verify against the live API (from Render, or locally) before trusting it.
 import { fetchWithTimeout } from './http';
-import type { HoleData } from './golfCourseApi';
+import type { HoleData, TeeData } from './golfCourseApi';
 
 const OPENGOLF_BASE = 'https://api.opengolfapi.org/v1';
 const OPENGOLF_KEY = process.env.OPENGOLF_API_KEY ?? '';
@@ -49,15 +49,8 @@ function resultName(c: OpenGolfSearchResult): string {
   return c.name ?? (c.course_name ? `${c.club_name ?? ''} ${c.course_name}`.trim() : c.club_name ?? '');
 }
 
-// Accepts several plausible field-name variants since the exact response
-// shape is unverified; requires every hole to have a real numeric par or
-// the whole result is rejected as unusable, rather than partially fabricated.
-function normalizeHoles(raw: unknown): HoleData[] | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const obj = raw as Record<string, unknown>;
-  const list = obj.holes ?? obj.scorecard;
+function normalizeHoleList(list: unknown): HoleData[] | null {
   if (!Array.isArray(list) || list.length < 9) return null;
-
   const holes: HoleData[] = [];
   for (const [i, h] of list.entries()) {
     if (!h || typeof h !== 'object') return null;
@@ -78,10 +71,48 @@ function normalizeHoles(raw: unknown): HoleData[] | null {
   return holes;
 }
 
-// Mirrors findHolesByName()'s GCA track-matching fix: local names like
+// Accepts several plausible response shapes since the exact schema is
+// unverified: a `tees` array (each with its own named holes) is preferred;
+// a flat `holes`/`scorecard` array is treated as a single synthetic
+// "Standard" tee when no per-tee breakdown is present.
+function normalizeTees(raw: unknown): TeeData[] | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const obj = raw as Record<string, unknown>;
+
+  if (Array.isArray(obj.tees)) {
+    const out: TeeData[] = [];
+    for (const t of obj.tees) {
+      if (!t || typeof t !== 'object') continue;
+      const tee = t as Record<string, unknown>;
+      const holes = normalizeHoleList(tee.holes ?? tee.scorecard);
+      if (!holes) continue;
+      out.push({
+        name: typeof tee.name === 'string' ? tee.name : 'Standard',
+        gender: tee.gender === 'female' ? 'female' : tee.gender === 'male' ? 'male' : undefined,
+        rating18: typeof tee.rating === 'number' ? tee.rating : typeof tee.course_rating === 'number' ? tee.course_rating : undefined,
+        slope18: typeof tee.slope === 'number' ? tee.slope : typeof tee.slope_rating === 'number' ? tee.slope_rating : undefined,
+        par: holes.reduce((s, h) => s + h.par, 0),
+        holesCount: holes.length === 9 ? 9 : 18,
+        holes,
+      });
+    }
+    return out.length > 0 ? out : null;
+  }
+
+  const flatHoles = normalizeHoleList(obj.holes ?? obj.scorecard);
+  if (!flatHoles) return null;
+  return [{
+    name: 'Standard',
+    par: flatHoles.reduce((s, h) => s + h.par, 0),
+    holesCount: flatHoles.length === 9 ? 9 : 18,
+    holes: flatHoles,
+  }];
+}
+
+// Mirrors findTeesByName()'s GCA track-matching fix: local names like
 // "Harborside International - Port" need the trailing track segment split
 // off before searching, then used to disambiguate multi-track clubs.
-export async function findHolesByNameOpenGolf(courseName: string): Promise<HoleData[] | null> {
+export async function findTeesByNameOpenGolf(courseName: string): Promise<TeeData[] | null> {
   const dashMatch = courseName.match(/^(.+?)\s+[-–]\s+(.+)$/);
   const baseName = dashMatch ? dashMatch[1] : courseName;
   const trackHint = dashMatch ? dashMatch[2].toLowerCase() : null;
@@ -91,7 +122,7 @@ export async function findHolesByNameOpenGolf(courseName: string): Promise<HoleD
     results = await openGolfSearch(courseName);
   }
   if (results.length === 0) {
-    console.error('[findHolesByNameOpenGolf] no results for', { courseName, baseName });
+    console.error('[findTeesByNameOpenGolf] no results for', { courseName, baseName });
     return null;
   }
 
@@ -107,16 +138,16 @@ export async function findHolesByNameOpenGolf(courseName: string): Promise<HoleD
   try {
     const res = await fetchWithTimeout(`${OPENGOLF_BASE}/courses/${encodeURIComponent(best.id)}/holes`, headers());
     if (!res.ok) {
-      console.error('[findHolesByNameOpenGolf] holes fetch non-ok', res.status, await res.text().catch(() => ''));
+      console.error('[findTeesByNameOpenGolf] holes fetch non-ok', res.status, await res.text().catch(() => ''));
       return null;
     }
-    const holes = normalizeHoles(await res.json());
-    if (!holes) {
-      console.error('[findHolesByNameOpenGolf] matched course but response was not a usable scorecard', { courseName, matchedId: best.id });
+    const tees = normalizeTees(await res.json());
+    if (!tees) {
+      console.error('[findTeesByNameOpenGolf] matched course but response was not a usable scorecard', { courseName, matchedId: best.id });
     }
-    return holes;
+    return tees;
   } catch (e) {
-    console.error('[findHolesByNameOpenGolf] holes fetch failed', e);
+    console.error('[findTeesByNameOpenGolf] holes fetch failed', e);
     return null;
   }
 }
