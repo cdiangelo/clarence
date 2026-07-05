@@ -166,6 +166,7 @@ export default function BagPage() {
             clubs={bySection(displaySection)}
             onClose={closeSection}
             onUpdateCarry={(id, carry) => updateClub(id, { carry, carryIsEstimate: false })}
+            onUpdateClub={(id, updates) => updateClub(id, updates)}
             onRemove={(id) => removeClub(id)}
           />
         )}

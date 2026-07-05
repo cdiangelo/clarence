@@ -9,6 +9,7 @@ interface Props {
   clubs: BagClub[];
   onClose: () => void;
   onUpdateCarry: (id: string, carry: number) => void;
+  onUpdateClub: (id: string, updates: Partial<BagClub>) => void;
   onRemove: (id: string) => void;
 }
 
@@ -39,9 +40,15 @@ function resolveEstimatedCarry(club: BagClub): number | null {
   return cat.carryBase ?? null;
 }
 
-export function SectionDetail({ section, clubs, onClose, onUpdateCarry, onRemove }: Props) {
+export function SectionDetail({ section, clubs, onClose, onUpdateCarry, onUpdateClub, onRemove }: Props) {
   const [editing, setEditing] = useState<string | null>(null);
   const [carryInput, setCarryInput] = useState('');
+
+  // Inline "edit details" (brand/model/loft) for an existing club
+  const [editingDetails, setEditingDetails] = useState<string | null>(null);
+  const [detailBrand, setDetailBrand] = useState('');
+  const [detailModel, setDetailModel] = useState('');
+  const [detailLoft, setDetailLoft] = useState('');
 
   if (!section) return null;
 
@@ -80,6 +87,28 @@ export function SectionDetail({ section, clubs, onClose, onUpdateCarry, onRemove
     if (!isNaN(val) && val > 0) onUpdateCarry(id, val);
     setEditing(null);
     setCarryInput('');
+  }
+
+  function startEditDetails(club: BagClub) {
+    setEditingDetails(club.id);
+    setDetailBrand(club.brand ?? '');
+    setDetailModel(club.model ?? '');
+    setDetailLoft(club.loft != null ? String(club.loft) : '');
+  }
+
+  function cancelEditDetails() {
+    setEditingDetails(null);
+    setDetailBrand(''); setDetailModel(''); setDetailLoft('');
+  }
+
+  function handleSaveDetails(id: string) {
+    const loft = detailLoft.trim() ? parseFloat(detailLoft) : undefined;
+    onUpdateClub(id, {
+      brand: detailBrand.trim() || undefined,
+      model: detailModel.trim() || undefined,
+      loft: loft != null && !isNaN(loft) ? loft : undefined,
+    });
+    cancelEditDetails();
   }
 
   return (
@@ -166,18 +195,69 @@ export function SectionDetail({ section, clubs, onClose, onUpdateCarry, onRemove
                   </span>
                 </div>
 
-                {/* Club info */}
+                {/* Club info — tap to edit brand/model/loft */}
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-ink truncate leading-tight">
-                    {club.brand && club.model
-                      ? `${club.brand} ${club.model}`
-                      : `${club.slot.toUpperCase()} Club`}
-                  </div>
-                  <div className="text-[10px] text-ink-muted mt-0.5 truncate">
-                    {cat?.stockShaft ?? 'Generic'}
-                  </div>
+                  {editingDetails === club.id ? (
+                    <div className="space-y-1.5 pr-2">
+                      <div className="flex gap-1.5">
+                        <input
+                          type="text"
+                          className="w-1/2 text-xs border border-turf rounded-md px-2 py-1 outline-none bg-white"
+                          placeholder="Brand"
+                          value={detailBrand}
+                          onChange={(e) => setDetailBrand(e.target.value)}
+                          autoFocus
+                        />
+                        <input
+                          type="text"
+                          className="w-1/2 text-xs border border-turf rounded-md px-2 py-1 outline-none bg-white"
+                          placeholder="Model"
+                          value={detailModel}
+                          onChange={(e) => setDetailModel(e.target.value)}
+                        />
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="number"
+                          step="0.5"
+                          className="w-20 text-xs border border-border rounded-md px-2 py-1 outline-none bg-white"
+                          placeholder="Loft °"
+                          value={detailLoft}
+                          onChange={(e) => setDetailLoft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveDetails(club.id);
+                            if (e.key === 'Escape') cancelEditDetails();
+                          }}
+                        />
+                        <button
+                          onClick={() => handleSaveDetails(club.id)}
+                          className="text-[10px] font-semibold text-white bg-turf px-2.5 py-1 rounded-md"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={cancelEditDetails}
+                          className="text-[10px] font-semibold text-ink-muted px-2 py-1"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button onClick={() => startEditDetails(club)} className="text-left w-full group/info">
+                      <div className="text-sm font-semibold text-ink truncate leading-tight group-hover/info:text-turf transition-colors">
+                        {club.brand && club.model
+                          ? `${club.brand} ${club.model}`
+                          : `${club.slot.toUpperCase()} Club`}
+                      </div>
+                      <div className="text-[10px] text-ink-muted mt-0.5 truncate">
+                        {cat?.stockShaft ?? (club.loft != null ? `${club.loft}°` : 'Generic')}
+                        <span className="opacity-0 group-hover/info:opacity-100 transition-opacity"> · edit</span>
+                      </div>
+                    </button>
+                  )}
                   {/* Distance bar */}
-                  {carry != null && maxCarry > 0 && (
+                  {editingDetails !== club.id && carry != null && maxCarry > 0 && (
                     <div className="mt-1.5 h-1 rounded-full bg-border overflow-hidden w-full max-w-[96px]">
                       <div
                         className="h-full rounded-full"
