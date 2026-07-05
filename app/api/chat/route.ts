@@ -5,12 +5,12 @@ import { buildGolfSystemPrompt } from '@/lib/prompts';
 import { calcHandicapIndex, calcSeasonStats } from '@/lib/handicap';
 import { query } from '@/db/client';
 import { COURSES } from '@/data/courses';
+import { gcaSearch, gcaCourseDetail, normalizeSearchResult, extractHoles } from '@/lib/golfCourseApi';
 import type { Message, TextBlock, ToolUseBlock, ToolResultBlock } from '@/lib/claude';
 
 export const maxDuration = 120;
 
 const GCA_KEY = process.env.GOLF_COURSE_API_KEY ?? '';
-const GCA_BASE = 'https://api.golfcourseapi.com/v1';
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
@@ -88,10 +88,16 @@ export async function POST(req: NextRequest) {
           url.searchParams.set('forecast_days', '1');
           url.searchParams.set('timezone', 'auto');
           const res = await fetch(url.toString());
-          if (!res.ok) return 'Weather data unavailable';
+          if (!res.ok) {
+            console.error('[get_weather] open-meteo non-ok', res.status, await res.text().catch(() => ''));
+            return 'Weather data unavailable';
+          }
           const data = await res.json();
           return JSON.stringify({ location: location ?? `${lat},${lng}`, ...data });
-        } catch { return 'Weather service error'; }
+        } catch (e) {
+          console.error('[get_weather] fetch failed', e);
+          return 'Weather service error';
+        }
       }
 
       case 'search_courses': {
@@ -122,39 +128,12 @@ export async function POST(req: NextRequest) {
             return JSON.stringify({ courses: seedMatches });
           }
 
-          // 3. Golf Course API
+          // 3. Golf Course API — normalizeSearchResult includes lat/lng so
+          // get_weather can be called for these courses too
           if (GCA_KEY) {
-            const res = await fetch(
-              `${GCA_BASE}/search?search_query=${encodeURIComponent(q)}`,
-              { headers: { Authorization: `Key ${GCA_KEY}` } },
-            );
-            if (res.ok) {
-              const data = await res.json() as {
-                courses?: {
-                  id: string | number; club_name: string; course_name?: string;
-                  location?: { city?: string; state?: string; latitude?: number; longitude?: number };
-                  holes?: number;
-                  tees?: { male?: { name: string; course_rating: number; slope_rating: number; par: number }[] };
-                }[]
-              };
-              const courses = (data.courses ?? []).slice(0, 8).map((c) => {
-                const blueTees = c.tees?.male?.find((t) => /blue/i.test(t.name));
-                const whiteTees = c.tees?.male?.find((t) => /white/i.test(t.name));
-                const tee = blueTees ?? whiteTees ?? c.tees?.male?.[0];
-                return {
-                  id: `gca-${c.id}`,
-                  name: c.course_name ? `${c.club_name} — ${c.course_name}` : c.club_name,
-                  city: c.location?.city ?? '',
-                  state: c.location?.state ?? '',
-                  par: tee?.par ?? 72,
-                  rating18: tee?.course_rating,
-                  slope18: tee?.slope_rating,
-                  holes: c.holes === 9 ? 9 : 18,
-                  verified: false,
-                };
-              });
-              return JSON.stringify({ courses: [...seedMatches, ...courses].slice(0, 8) });
-            }
+            const rawCourses = await gcaSearch(q, GCA_KEY);
+            const courses = rawCourses.slice(0, 8).map(normalizeSearchResult);
+            return JSON.stringify({ courses: [...seedMatches, ...courses].slice(0, 8) });
           }
 
           return JSON.stringify({ courses: seedMatches });
@@ -172,15 +151,15 @@ export async function POST(req: NextRequest) {
             [courseId],
           );
           if (holes.length === 0) {
-            // GCA courses have 'gca-{id}' prefixed IDs — strip prefix and call the API
+            // GCA courses have 'gca-{id}' prefixed IDs — hole arrays live nested
+            // inside tees.male[].holes, and the detail response wraps the course
+            // under a `course` key (see lib/golfCourseApi.ts)
             if (GCA_KEY && courseId.startsWith('gca-')) {
               const apiId = courseId.replace(/^gca-/, '');
-              const res = await fetch(`${GCA_BASE}/courses/${apiId}`, {
-                headers: { Authorization: `Key ${GCA_KEY}` },
-              });
-              if (res.ok) {
-                const d = await res.json() as { holes?: object[] };
-                return JSON.stringify({ courseId, holes: d.holes ?? [] });
+              const detail = await gcaCourseDetail(apiId, GCA_KEY);
+              const rawHoles = detail ? extractHoles(detail) : null;
+              if (rawHoles && rawHoles.length >= 9) {
+                return JSON.stringify({ courseId, holes: rawHoles });
               }
             }
             return JSON.stringify({ courseId, holes: [], message: 'No hole data available for this course' });

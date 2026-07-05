@@ -1,48 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/db/client';
 import { COURSES } from '@/data/courses';
+import { gcaSearch, normalizeSearchResult } from '@/lib/golfCourseApi';
 
 const GCA_KEY = process.env.GOLF_COURSE_API_KEY ?? '';
-const GCA_BASE = 'https://api.golfcourseapi.com/v1';
 
-interface GcaCourse {
-  id: string | number;
-  club_name: string;
-  course_name?: string;
-  location?: { city?: string; state?: string; latitude?: number; longitude?: number };
-  holes?: number;
-  tees?: { male?: { name: string; course_rating: number; slope_rating: number; par: number }[] };
-}
-
-async function searchGolfCourseApi(q: string): Promise<object[]> {
-  if (!GCA_KEY) return [];
-  try {
-    const url = `${GCA_BASE}/search?search_query=${encodeURIComponent(q)}`;
-    const res = await fetch(url, { headers: { Authorization: `Key ${GCA_KEY}` }, next: { revalidate: 3600 } });
-    if (!res.ok) return [];
-    const data = await res.json() as { courses?: GcaCourse[] };
-    return (data.courses ?? []).slice(0, 8).map((c) => {
-      const blueTees = c.tees?.male?.find((t) => /blue/i.test(t.name));
-      const whiteTees = c.tees?.male?.find((t) => /white/i.test(t.name));
-      const tee = blueTees ?? whiteTees ?? c.tees?.male?.[0];
-      return {
-        id: `gca-${c.id}`,
-        name: c.course_name ? `${c.club_name} — ${c.course_name}` : c.club_name,
-        city: c.location?.city ?? '',
-        state: c.location?.state ?? '',
-        lat: c.location?.latitude ?? 0,
-        lng: c.location?.longitude ?? 0,
-        par: tee?.par ?? 72,
-        rating18: tee?.course_rating,
-        slope18: tee?.slope_rating,
-        holes: c.holes === 9 ? 9 : 18,
-        verified: false,
-        source: 'gca',
-      };
-    });
-  } catch {
-    return [];
-  }
+async function searchGolfCourseApi(q: string) {
+  const rawCourses = await gcaSearch(q, GCA_KEY);
+  return rawCourses.slice(0, 8).map(normalizeSearchResult);
 }
 
 export async function GET(req: NextRequest) {
