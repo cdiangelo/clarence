@@ -119,3 +119,25 @@ export async function gcaCourseDetail(id: string, apiKey: string): Promise<GcaCo
     return null;
   }
 }
+
+// Seed/DB courses have their own local ids (e.g. 'harborside-port'), never
+// 'gca-' prefixed, so get_course_holes has no id to hand the API directly —
+// even though the real course very likely exists there too. This bridges
+// the gap by searching GCA BY NAME and pulling holes from whatever it finds,
+// rather than requiring the course to have originated from a GCA search.
+export async function findHolesByName(courseName: string, apiKey: string): Promise<HoleData[] | null> {
+  if (!apiKey) return null;
+  const results = await gcaSearch(courseName, apiKey);
+  if (results.length === 0) return null;
+
+  // Prefer a close name match over just taking the first result
+  const normalized = courseName.toLowerCase();
+  const best = results.find((c) => {
+    const full = (c.course_name ? `${c.club_name} ${c.course_name}` : c.club_name).toLowerCase();
+    return full.includes(normalized) || normalized.includes(c.club_name.toLowerCase());
+  }) ?? results[0];
+
+  const detail = await gcaCourseDetail(String(best.id), apiKey);
+  if (!detail) return null;
+  return extractHoles(detail);
+}

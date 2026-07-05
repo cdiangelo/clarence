@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth';
+import { useLiveRoundStore } from '@/stores/liveRound';
 import { AppShell } from '@/components/layout/AppShell';
 
 interface Course {
@@ -9,6 +10,8 @@ interface Course {
   name: string;
   city: string;
   state: string;
+  lat?: number;
+  lng?: number;
   par: number;
   rating18?: number;
   slope18?: number;
@@ -21,6 +24,7 @@ interface Course {
 export default function CoursesPage() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const startLiveRound = useLiveRoundStore((s) => s.start);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
@@ -71,6 +75,15 @@ export default function CoursesPage() {
     router.push(`/chat?q=${q}`);
   }
 
+  function startLive(c: Course) {
+    startLiveRound(
+      { id: c.id, name: c.name, lat: c.lat, lng: c.lng, par: c.par, rating18: c.rating18, slope18: c.slope18, rating9: c.rating9, slope9: c.slope9 },
+      c.holes,
+      'solo',
+    );
+    router.push('/log');
+  }
+
   return (
     <AppShell>
       <div className="px-4 py-5 space-y-4">
@@ -118,25 +131,34 @@ export default function CoursesPage() {
                 </div>
 
                 {/* Action buttons */}
-                <div className="flex gap-2">
+                <div className="space-y-2">
                   <button
-                    onClick={() => logRound(c)}
-                    className="flex-1 flex items-center justify-center gap-1.5 bg-turf text-white text-[10px] font-display tracking-wider py-1.5 rounded-lg hover:bg-turf-light transition-colors"
+                    onClick={() => startLive(c)}
+                    className="w-full flex items-center justify-center gap-1.5 bg-turf text-white text-[10px] font-display tracking-wider py-1.5 rounded-lg hover:bg-turf-light transition-colors"
                   >
-                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                      <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-                    </svg>
-                    LOG ROUND
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                    START LIVE ROUND
                   </button>
-                  <button
-                    onClick={() => askCaddie(c)}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-turf text-turf text-[10px] font-display tracking-wider py-1.5 rounded-lg hover:bg-turf-wash transition-colors"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                      <path d="M9 5C9 7.21 7.21 9 5 9c-.7 0-1.36-.16-1.93-.44L1 9l.48-2.1A4 4 0 0 1 1 5C1 2.79 2.79 1 5 1s4 1.79 4 4z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
-                    </svg>
-                    ASK CADDIE
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => logRound(c)}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-turf text-turf text-[10px] font-display tracking-wider py-1.5 rounded-lg hover:bg-turf-wash transition-colors"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                        <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                      </svg>
+                      LOG ROUND
+                    </button>
+                    <button
+                      onClick={() => askCaddie(c)}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-border text-ink-soft text-[10px] font-display tracking-wider py-1.5 rounded-lg hover:border-turf/50 transition-colors"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                        <path d="M9 5C9 7.21 7.21 9 5 9c-.7 0-1.36-.16-1.93-.44L1 9l.48-2.1A4 4 0 0 1 1 5C1 2.79 2.79 1 5 1s4 1.79 4 4z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
+                      </svg>
+                      ASK CADDIE
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

@@ -3,8 +3,10 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth';
 import { useRoundsStore, type Round, type RoundType } from '@/stores/rounds';
+import { useLiveRoundStore } from '@/stores/liveRound';
 import { AppShell } from '@/components/layout/AppShell';
 import { QuickLog, type InitialCourse, type InitialRound } from '@/components/round/QuickLog';
+import { LiveScorecard } from '@/components/round/LiveScorecard';
 
 interface SaveData {
   courseName: string; courseId?: string; courseRating?: number; slopeRating?: number;
@@ -16,6 +18,7 @@ function LogPageInner() {
   const searchParams = useSearchParams();
   const { user } = useAuthStore();
   const { rounds, loaded, load, addRound, updateRound, deleteRound } = useRoundsStore();
+  const liveActive = useLiveRoundStore((s) => s.active);
   const [showLog, setShowLog] = useState(false);
   const [editingRound, setEditingRound] = useState<Round | null>(null);
   const [saved, setSaved] = useState(false);
@@ -95,6 +98,8 @@ function LogPageInner() {
   return (
     <AppShell>
       <div className="px-4 py-5 space-y-4">
+        {liveActive && <LiveScorecard />}
+
         <div className="flex items-center justify-between">
           <div className="text-xs text-ink-soft">{rounds.length} round{rounds.length !== 1 ? 's' : ''} logged</div>
           <button
