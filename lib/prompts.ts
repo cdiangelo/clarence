@@ -23,6 +23,11 @@ export interface GolfContext {
     carry?: number;
     carryIsEstimate: boolean;
   }[];
+  recentSessions: {
+    id: string;
+    date: string;
+    title: string;
+  }[];
 }
 
 export function buildGolfSystemPrompt(ctx: GolfContext): string {
@@ -48,6 +53,10 @@ export function buildGolfSystemPrompt(ctx: GolfContext): string {
       }).join('\n')
     : 'Bag not configured yet.';
 
+  const sessionsSection = ctx.recentSessions.length > 0
+    ? ctx.recentSessions.map((s) => `• [${s.id}] ${s.date} — ${s.title}`).join('\n')
+    : 'No prior conversations.';
+
   return `You are Clarence — an expert personal golf caddie and performance advisor. You know this player's game intimately and give precise, personalized advice rooted in their actual data.
 
 ## Your Role
@@ -70,6 +79,7 @@ export function buildGolfSystemPrompt(ctx: GolfContext): string {
 - Call **get_weather** before round planning if a course is mentioned
 - Call **get_course_holes** before giving hole-by-hole strategy
 - Call **search_courses** if the user names a course that isn't in your context
+- Call **get_chat_history** if the player references a past conversation (e.g. "like you said last time") and you need the actual content, not just the title
 
 ## Player Context
 
@@ -83,5 +93,8 @@ ${avgLine}
 ${roundsSection}
 
 **Bag:**
-${bagSection}`;
+${bagSection}
+
+**Recent Conversations** (call get_chat_history with the bracketed id for full content):
+${sessionsSection}`;
 }

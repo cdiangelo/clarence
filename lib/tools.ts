@@ -63,4 +63,14 @@ export const GOLF_TOOLS: ToolDef[] = [
       properties: {},
     },
   },
+  {
+    name: 'get_chat_history',
+    description: "Fetch the full transcript of a prior conversation with this player, when they reference something discussed before (e.g. 'like you said last time', 'what was that drill you gave me'). The system prompt already lists recent chat titles/dates for context — call this when you need the actual message content of one of them.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string', description: 'Session ID from the "Recent Conversations" list in your context. Omit to get the single most recent prior session.' },
+      },
+    },
+  },
 ];

@@ -129,9 +129,33 @@ CREATE TABLE IF NOT EXISTS agent_cache (
   ttl_seconds INT NOT NULL DEFAULT 86400
 );
 
+-- ─── CHAT SESSIONS / ARCHIVE ────────────────────────────────────
+-- A session is created lazily on the first message of a conversation.
+-- Starting a "new chat" just means the client stops sending that
+-- session's id, so the next message creates a fresh one — the old
+-- session simply becomes part of the archive.
+CREATE TABLE IF NOT EXISTS chat_sessions (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title       TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id  UUID NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+  role        TEXT NOT NULL,             -- user | assistant
+  content     TEXT NOT NULL,
+  tools_used  TEXT[],
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ─── INDEXES ──────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_rounds_user_date ON rounds(user_id, date DESC);
 CREATE INDEX IF NOT EXISTS idx_round_holes_round ON round_holes(round_id);
 CREATE INDEX IF NOT EXISTS idx_bag_clubs_user ON bag_clubs(user_id);
 CREATE INDEX IF NOT EXISTS idx_courses_name ON courses USING gin(to_tsvector('english', name));
 CREATE INDEX IF NOT EXISTS idx_agent_cache_key ON agent_cache(key);
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_user ON chat_sessions(user_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id, created_at);

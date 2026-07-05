@@ -15,14 +15,33 @@ const GCA_KEY = process.env.GOLF_COURSE_API_KEY ?? '';
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = session.userId;
 
   const body = await req.json() as {
     message: string;
     history: { role: 'user' | 'assistant'; content: string }[];
+    sessionId?: string;
   };
 
+  // Resolve or create the chat session this exchange belongs to
+  let chatSessionId = body.sessionId;
+  if (chatSessionId) {
+    const owned = await query<{ id: string }>(
+      'SELECT id FROM chat_sessions WHERE id = $1 AND user_id = $2',
+      [chatSessionId, session.userId],
+    ).catch(() => []);
+    if (owned.length === 0) chatSessionId = undefined;
+  }
+  if (!chatSessionId) {
+    const created = await query<{ id: string }>(
+      'INSERT INTO chat_sessions (user_id, title) VALUES ($1, $2) RETURNING id',
+      [session.userId, body.message.slice(0, 60)],
+    );
+    chatSessionId = created[0].id;
+  }
+
   // Build context from DB
-  const [roundRows, clubRows, userRow] = await Promise.all([
+  const [roundRows, clubRows, userRow, sessionRows] = await Promise.all([
     query<{
       id: string; course_name: string; date: string; holes: number; score: number; round_type: string;
       course_rating: number | null; slope_rating: number | null; putts: number | null;
@@ -43,6 +62,13 @@ export async function POST(req: NextRequest) {
       'SELECT id, email, display_name FROM users WHERE id = $1',
       [session.userId],
     ).then((r) => r[0]).catch(() => null),
+    query<{ id: string; title: string | null; updated_at: string }>(
+      `SELECT id, title, to_char(updated_at, 'YYYY-MM-DD') AS updated_at
+       FROM chat_sessions
+       WHERE user_id = $1 AND id != $2
+       ORDER BY updated_at DESC LIMIT 8`,
+      [session.userId, chatSessionId],
+    ).catch(() => []),
   ]);
 
   // Scramble/team rounds are never WHS-eligible for a handicap index
@@ -73,6 +99,9 @@ export async function POST(req: NextRequest) {
     bag: clubRows.map((c) => ({
       slot: c.slot, brand: c.brand ?? undefined, model: c.model ?? undefined,
       carry: c.carry ?? undefined, carryIsEstimate: c.carry_is_estimate,
+    })),
+    recentSessions: sessionRows.map((s) => ({
+      id: s.id, date: s.updated_at, title: s.title ?? 'Untitled chat',
     })),
   });
 
@@ -201,6 +230,34 @@ export async function POST(req: NextRequest) {
         });
       }
 
+      case 'get_chat_history': {
+        const { sessionId: targetId } = input as { sessionId?: string };
+        try {
+          const targetSession = targetId
+            ? await query<{ id: string; title: string | null }>(
+                'SELECT id, title FROM chat_sessions WHERE id = $1 AND user_id = $2',
+                [targetId, userId],
+              )
+            : await query<{ id: string; title: string | null }>(
+                `SELECT id, title FROM chat_sessions WHERE user_id = $1 AND id != $2
+                 ORDER BY updated_at DESC LIMIT 1`,
+                [userId, chatSessionId],
+              );
+
+          if (targetSession.length === 0) return JSON.stringify({ error: 'No matching prior conversation found' });
+
+          const priorMessages = await query<{ role: string; content: string }>(
+            'SELECT role, content FROM chat_messages WHERE session_id = $1 ORDER BY created_at ASC LIMIT 60',
+            [targetSession[0].id],
+          );
+
+          return JSON.stringify({
+            title: targetSession[0].title,
+            messages: priorMessages.map((m) => ({ role: m.role, content: m.content })),
+          });
+        } catch (e) { return `Error fetching chat history: ${(e as Error).message}`; }
+      }
+
       default:
         return `Unknown tool: ${name}`;
     }
@@ -210,6 +267,13 @@ export async function POST(req: NextRequest) {
     ...body.history.map((m) => ({ role: m.role, content: m.content })),
     { role: 'user' as const, content: body.message },
   ];
+
+  // Persist the user's message immediately so it's in the archive even if
+  // the Claude call below fails
+  await query(
+    'INSERT INTO chat_messages (session_id, role, content) VALUES ($1, $2, $3)',
+    [chatSessionId, 'user', body.message],
+  ).catch((e) => console.error('[chat] failed to persist user message', e));
 
   try {
     while (true) {
@@ -240,7 +304,16 @@ export async function POST(req: NextRequest) {
         ];
       } else {
         const text = (response.content.find((b): b is TextBlock => b.type === 'text'))?.text ?? '';
-        return NextResponse.json({ text, toolsUsed });
+
+        await Promise.all([
+          query(
+            'INSERT INTO chat_messages (session_id, role, content, tools_used) VALUES ($1, $2, $3, $4)',
+            [chatSessionId, 'assistant', text, toolsUsed.length ? toolsUsed : null],
+          ),
+          query('UPDATE chat_sessions SET updated_at = NOW() WHERE id = $1', [chatSessionId]),
+        ]).catch((e) => console.error('[chat] failed to persist assistant message', e));
+
+        return NextResponse.json({ text, toolsUsed, sessionId: chatSessionId });
       }
     }
   } catch (err) {
