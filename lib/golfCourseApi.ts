@@ -83,12 +83,25 @@ export function extractHoles(c: GcaCourseRaw): HoleData[] | null {
   }));
 }
 
+const REQUEST_UA = 'Clarence-Golf-App/1.0 (+https://clarence-1zva.onrender.com)';
+
+async function fetchWithTimeout(url: string, headers: Record<string, string>, timeoutMs = 8000): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { headers: { 'User-Agent': REQUEST_UA, ...headers }, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function gcaSearch(query: string, apiKey: string): Promise<GcaCourseRaw[]> {
   if (!apiKey) return [];
   try {
-    const res = await fetch(`${GCA_BASE}/search?search_query=${encodeURIComponent(query)}`, {
-      headers: { Authorization: `Key ${apiKey}` },
-    });
+    const res = await fetchWithTimeout(
+      `${GCA_BASE}/search?search_query=${encodeURIComponent(query)}`,
+      { Authorization: `Key ${apiKey}` },
+    );
     if (!res.ok) {
       console.error('[gcaSearch] non-ok', res.status, await res.text().catch(() => ''));
       return [];
@@ -104,9 +117,7 @@ export async function gcaSearch(query: string, apiKey: string): Promise<GcaCours
 export async function gcaCourseDetail(id: string, apiKey: string): Promise<GcaCourseRaw | null> {
   if (!apiKey) return null;
   try {
-    const res = await fetch(`${GCA_BASE}/courses/${id}`, {
-      headers: { Authorization: `Key ${apiKey}` },
-    });
+    const res = await fetchWithTimeout(`${GCA_BASE}/courses/${id}`, { Authorization: `Key ${apiKey}` });
     if (!res.ok) {
       console.error('[gcaCourseDetail] non-ok', res.status, await res.text().catch(() => ''));
       return null;

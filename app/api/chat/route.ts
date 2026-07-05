@@ -92,7 +92,12 @@ export async function POST(req: NextRequest) {
           url.searchParams.set('wind_speed_unit', 'mph');
           url.searchParams.set('forecast_days', '1');
           url.searchParams.set('timezone', 'auto');
-          const res = await fetch(url.toString());
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 8000);
+          const res = await fetch(url.toString(), {
+            signal: controller.signal,
+            headers: { 'User-Agent': 'Clarence-Golf-App/1.0 (+https://clarence-1zva.onrender.com)' },
+          }).finally(() => clearTimeout(timeout));
           if (!res.ok) {
             console.error('[get_weather] open-meteo non-ok', res.status, await res.text().catch(() => ''));
             return 'Weather data unavailable';
