@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import type { BagSection, BagClub } from '@/stores/bag';
 import { SLOT_ORDER } from '@/stores/bag';
 import { CLUBS, IRON_SLOT_OFFSETS, WEDGE_CARRY_BY_LOFT } from '@/data/clubs';
-import { clubShape, CLUB_PHOTO } from '@/lib/clubShape';
 
 interface Props {
   section: BagSection | null;
@@ -183,35 +182,18 @@ export function SectionDetail({ section, clubs, onClose, onUpdateCarry, onUpdate
 
               {/* Club card */}
               <div className="flex items-center gap-3 py-2 group">
-                {/* Slot pill — real clubhead photo where available, else slot text */}
-                {(() => {
-                  const photo = CLUB_PHOTO[clubShape(club.slot)];
-                  return photo ? (
-                    <div
-                      className="w-12 h-12 rounded-xl flex-shrink-0 overflow-hidden relative bg-cover bg-center border-2"
-                      style={{ backgroundImage: `url(${photo})`, borderColor: accent + '40' }}
-                    >
-                      <span
-                        className="absolute bottom-0 right-0 text-[8px] font-display font-extrabold text-white px-1 rounded-tl-md leading-tight"
-                        style={{ backgroundColor: accent }}
-                      >
-                        {club.slot.toUpperCase()}
-                      </span>
-                    </div>
-                  ) : (
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: wash }}
-                    >
-                      <span
-                        className="text-[11px] font-display font-extrabold tracking-wide"
-                        style={{ color: accent }}
-                      >
-                        {club.slot.toUpperCase()}
-                      </span>
-                    </div>
-                  );
-                })()}
+                {/* Slot pill */}
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: wash }}
+                >
+                  <span
+                    className="text-[11px] font-display font-extrabold tracking-wide"
+                    style={{ color: accent }}
+                  >
+                    {club.slot.toUpperCase()}
+                  </span>
+                </div>
 
                 {/* Club info — tap to edit brand/model/loft */}
                 <div className="flex-1 min-w-0">
