@@ -1,11 +1,9 @@
 import type { NextConfig } from 'next';
 
 const config: NextConfig = {
-  // Allow longer timeouts for AI responses
+  reactStrictMode: true,
   experimental: {
-    serverActions: {
-      bodySizeLimit: '2mb',
-    },
+    serverActions: { bodySizeLimit: '2mb' },
   },
 };
 

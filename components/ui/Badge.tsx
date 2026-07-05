@@ -7,7 +7,7 @@ interface BadgeProps {
 
 export function Badge({ label, className = '' }: BadgeProps) {
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold tracking-wide ${className}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-display tracking-wider ${className}`}>
       {label.toUpperCase()}
     </span>
   );

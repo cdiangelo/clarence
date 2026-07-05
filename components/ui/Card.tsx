@@ -3,14 +3,12 @@ import React from 'react';
 interface CardProps {
   children: React.ReactNode;
   className?: string;
-  accentColor?: string;
-  elevated?: boolean;
+  shadow?: boolean;
 }
 
-export function Card({ children, className = '', elevated = false }: CardProps) {
-  const bg = elevated ? 'bg-elevated' : 'bg-surface';
+export function Card({ children, className = '', shadow = true }: CardProps) {
   return (
-    <div className={`${bg} border border-border rounded-xl p-4 ${className}`}>
+    <div className={`bg-card rounded-xl border border-border ${shadow ? 'shadow-card' : ''} ${className}`}>
       {children}
     </div>
   );

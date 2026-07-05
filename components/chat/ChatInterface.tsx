@@ -1,16 +1,15 @@
 'use client';
 import React, { useRef, useEffect, useState } from 'react';
 import { useChatStore } from '@/stores/chat';
-import { buildContext } from '@/lib/context';
 import { MessageBubble } from './MessageBubble';
 
 const QUICK_PROMPTS = [
-  'Analyze NVDA — give me the contrarian view',
-  'What are the softest consensus assumptions in mega-cap tech right now?',
-  'Deep dive on AAPL — thesis, valuation, options positioning',
-  'Map rate-sensitive sectors vs. current Fed trajectory',
-  'Find options arbitrage opportunities on SPY',
-  'Build a thesis framework for a macro regime shift trade',
+  'What should I work on to lower my handicap?',
+  'Analyze my gapping and suggest a wedge setup',
+  'Plan my round at Cog Hill 4 — tips for each nine',
+  'What are my weakest stats and how do I improve?',
+  'Suggest a practice routine for the next month',
+  'How do I approach a tight par 4 playing into the wind?',
 ];
 
 export function ChatInterface() {
@@ -19,32 +18,26 @@ export function ChatInterface() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
-  // Auto-resize textarea
   useEffect(() => {
     const ta = textareaRef.current;
     if (!ta) return;
     ta.style.height = 'auto';
-    ta.style.height = Math.min(ta.scrollHeight, 200) + 'px';
+    ta.style.height = Math.min(ta.scrollHeight, 160) + 'px';
   }, [input]);
 
   async function handleSend() {
     const text = input.trim();
     if (!text || isLoading) return;
     setInput('');
-    const ctx = buildContext();
-    await send(text, ctx as unknown as Record<string, unknown>);
+    await send(text);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
   }
 
   const isEmpty = messages.length === 0;
@@ -52,59 +45,51 @@ export function ChatInterface() {
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 lg:px-6 py-3 border-b border-border flex-shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-2 h-2 rounded-full bg-gain animate-pulse-slow" />
-          <span className="font-mono text-xs font-semibold tracking-widest text-ink-secondary">ANALYST</span>
-          <span className="hidden sm:inline text-xs text-ink-muted">claude-opus-4-8</span>
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-card flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-turf animate-pulse" />
+          <span className="eyebrow text-turf">Caddie AI</span>
         </div>
         {messages.length > 0 && (
-          <button
-            onClick={clear}
-            className="text-xs text-ink-muted hover:text-ink-secondary transition-colors px-2 py-1 rounded hover:bg-elevated"
-          >
-            Clear
+          <button onClick={clear} className="text-[10px] font-display tracking-wider text-ink-muted hover:text-flag">
+            CLEAR
           </button>
         )}
       </div>
 
-      {/* Message list */}
-      <div className="flex-1 overflow-y-auto px-4 lg:px-6 py-4 space-y-4 min-h-0">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0">
         {isEmpty ? (
-          <div className="flex flex-col items-center justify-center h-full gap-6 py-12">
+          <div className="flex flex-col items-center justify-center h-full gap-6 py-8">
             <div className="text-center">
-              <div className="text-2xl font-mono font-bold text-ink mb-1">CLARENCE</div>
-              <div className="text-sm text-ink-secondary max-w-sm text-center leading-relaxed">
-                Private investment research. Contrarian analysis, live market data, options analytics — concise by default, full reports on demand.
-              </div>
+              <div className="font-display text-2xl tracking-widest text-turf mb-2">CADDIE</div>
+              <p className="text-sm text-ink-soft max-w-xs text-center leading-relaxed">
+                Your personal golf advisor — course strategy, practice plans, stat analysis, and round planning.
+              </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-xl">
-              {QUICK_PROMPTS.map((prompt) => (
+            <div className="grid grid-cols-1 gap-2 w-full max-w-sm">
+              {QUICK_PROMPTS.map((p) => (
                 <button
-                  key={prompt}
-                  onClick={() => { setInput(prompt); textareaRef.current?.focus(); }}
-                  className="text-left text-xs text-ink-secondary bg-elevated border border-border hover:border-border-light hover:text-ink px-3 py-2.5 rounded-xl transition-colors leading-snug"
-                >
-                  {prompt}
-                </button>
+                  key={p}
+                  onClick={() => { setInput(p); textareaRef.current?.focus(); }}
+                  className="text-left text-xs text-ink-soft bg-card border border-border hover:border-turf/50 hover:bg-turf-wash px-3 py-2.5 rounded-xl transition-colors"
+                >{p}</button>
               ))}
             </div>
           </div>
         ) : (
           <>
-            {messages.map((msg) => (
-              <MessageBubble key={msg.id} message={msg} />
-            ))}
+            {messages.map((msg) => <MessageBubble key={msg.id} message={msg} />)}
             {isLoading && (
               <div className="flex gap-2.5">
-                <div className="w-7 h-7 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-primary text-xs font-bold">A</span>
+                <div className="w-7 h-7 rounded-full bg-turf/10 border border-turf/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-turf text-[10px] font-display">C</span>
                 </div>
-                <div className="bg-elevated border border-border rounded-2xl rounded-tl-sm px-4 py-3">
-                  <div className="flex gap-1.5 items-center">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:0ms]" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:150ms]" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:300ms]" />
+                <div className="bg-card border border-border rounded-2xl rounded-tl-sm px-4 py-3">
+                  <div className="flex gap-1 items-center">
+                    {[0, 150, 300].map((d) => (
+                      <span key={d} className="w-1.5 h-1.5 rounded-full bg-turf/50 animate-bounce" style={{ animationDelay: `${d}ms` }} />
+                    ))}
                   </div>
                 </div>
               </div>
@@ -114,31 +99,31 @@ export function ChatInterface() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input area */}
-      <div className="flex-shrink-0 border-t border-border bg-surface px-4 lg:px-6 py-3 pb-safe">
-        <div className="flex items-end gap-2 bg-elevated border border-border rounded-2xl px-3 py-2 focus-within:border-border-light transition-colors">
+      {/* Input */}
+      <div className="flex-shrink-0 border-t border-border bg-card px-4 py-3 pb-safe">
+        <div className="flex items-end gap-2 bg-paper border border-border rounded-2xl px-3 py-2 focus-within:border-turf/60 transition-colors">
           <textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask anything — analysis, thesis, options, macro…"
+            placeholder="Ask your caddie…"
             rows={1}
             disabled={isLoading}
-            className="flex-1 bg-transparent text-sm text-ink placeholder-ink-muted resize-none outline-none min-h-[24px] max-h-[200px] leading-relaxed disabled:opacity-50"
+            className="flex-1 bg-transparent text-sm text-ink placeholder-ink-muted resize-none outline-none min-h-[24px] max-h-[160px] leading-relaxed disabled:opacity-50"
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
-            className="flex-shrink-0 w-8 h-8 rounded-xl bg-primary disabled:bg-primary/30 flex items-center justify-center transition-colors hover:bg-primary-light disabled:cursor-not-allowed"
+            className="flex-shrink-0 w-8 h-8 rounded-xl bg-turf disabled:bg-turf/30 flex items-center justify-center transition-colors hover:bg-turf-light disabled:cursor-not-allowed"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path d="M7 12V2M2 7l5-5 5 5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
         </div>
-        <div className="mt-1.5 text-[10px] text-ink-muted text-right">
-          Enter to send · Shift+Enter for new line
+        <div className="mt-1 text-[9px] font-display tracking-wider text-ink-muted text-right">
+          ENTER TO SEND · SHIFT+ENTER FOR NEW LINE
         </div>
       </div>
     </div>

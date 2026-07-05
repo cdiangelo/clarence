@@ -1,145 +1,152 @@
+'use client';
 import React from 'react';
-import { colors } from '../../constants/theme';
-import type { ComboData, ChartConfig } from '../../lib/charts';
-import { formatChartValue } from '../../lib/charts';
 
-interface Props {
-  data: ComboData;
-  config?: ChartConfig;
-  width?: number;
+interface MonthData {
+  month: string;
+  count: number;
+  avgScore: number | null;
+  handicap?: number | null;
 }
 
-const PADDING = { top: 20, right: 50, bottom: 48, left: 52 };
+interface Props {
+  data: MonthData[];
+  par?: number;
+}
 
-export function ComboChart({ data, config, width = 340 }: Props) {
-  const height = config?.height ?? 220;
-  const chartW = width - PADDING.left - PADDING.right;
-  const chartH = height - PADDING.top - PADDING.bottom;
+const W = 560;
+const H = 200;
+const PAD = { top: 24, right: 24, bottom: 36, left: 44 };
+const CHART_W = W - PAD.left - PAD.right;
+const CHART_H = H - PAD.top - PAD.bottom;
 
-  const n = data.labels.length;
-  const barW = Math.max(8, (chartW / n) * 0.55);
-  const spacing = chartW / n;
+export function ComboChart({ data, par = 72 }: Props) {
+  const active = data.filter((d) => d.count > 0 || d.avgScore != null);
+  if (active.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-32 text-ink-muted text-sm">
+        Log some rounds to see your season chart
+      </div>
+    );
+  }
 
-  // Bar axis (left)
-  const barVals = data.bars.values;
-  const barMax = Math.max(...barVals, 0);
-  const barMin = Math.min(...barVals, 0);
-  const barRange = barMax - barMin || 1;
-  const barPad = barRange * 0.05;
-  const bYMax = barMax + barPad;
-  const bYMin = barMin - barPad;
-  const bYRange = bYMax - bYMin;
-  const toBarY = (v: number) => PADDING.top + chartH - ((v - bYMin) / bYRange) * chartH;
-  const barZeroY = toBarY(0);
+  const maxCount = Math.max(...data.map((d) => d.count), 1);
+  const scores = data.map((d) => d.avgScore).filter((s): s is number => s != null);
+  const handicaps = data.map((d) => d.handicap).filter((h): h is number => h != null);
+  const allLines = [...scores, ...handicaps];
+  const minLine = allLines.length > 0 ? Math.min(...allLines) - 4 : par - 10;
+  const maxLine = allLines.length > 0 ? Math.max(...allLines) + 4 : par + 10;
 
-  // Line axis (right) — normalize all line values together
-  const lineVals = data.lines.flatMap((l) => l.values).filter(isFinite);
-  const lMax = Math.max(...lineVals, 0);
-  const lMin = Math.min(...lineVals, 0);
-  const lRange = lMax - lMin || 1;
-  const lPad = lRange * 0.1;
-  const lYMax = lMax + lPad;
-  const lYMin = lMin - lPad;
-  const lYRange = lYMax - lYMin;
-  const toLineY = (v: number) => PADDING.top + chartH - ((v - lYMin) / lYRange) * chartH;
+  const xStep = CHART_W / (data.length - 1 || 1);
+  const barW = (CHART_W / data.length) * 0.55;
 
-  const barColor = data.bars.color ?? colors.primary;
-  const lineColors = data.lines.map((l, i) => l.color ?? colors.chart[i + 1] ?? colors.gold);
-  const fmt = config?.formatY ?? 'number';
+  function barH(count: number) { return (count / maxCount) * CHART_H; }
+  function yLine(val: number) { return PAD.top + CHART_H - ((val - minLine) / (maxLine - minLine)) * CHART_H; }
+  function xPos(i: number) { return PAD.left + (CHART_W / data.length) * (i + 0.5); }
 
-  const tickCount = 5;
-  const barTicks = Array.from({ length: tickCount }, (_, i) => bYMin + (bYRange * i) / (tickCount - 1));
-  const lineTicks = Array.from({ length: tickCount }, (_, i) => lYMin + (lYRange * i) / (tickCount - 1));
+  // Build score & handicap line paths
+  function buildPath(values: (number | null | undefined)[], transform: (v: number) => number): string {
+    const pts: string[] = [];
+    values.forEach((v, i) => {
+      if (v == null) return;
+      const x = xPos(i);
+      const y = transform(v);
+      pts.push(pts.length === 0 ? `M ${x} ${y}` : `L ${x} ${y}`);
+    });
+    return pts.join(' ');
+  }
+
+  const scorePath = buildPath(data.map((d) => d.avgScore), yLine);
+  const hcpPath = buildPath(data.map((d) => d.handicap), yLine);
+  const parY = yLine(par);
+
+  // Y-axis ticks for score line
+  const lineRange = maxLine - minLine;
+  const tickStep = lineRange <= 12 ? 2 : 4;
+  const yTicks: number[] = [];
+  for (let v = Math.round(minLine / tickStep) * tickStep; v <= maxLine; v += tickStep) yTicks.push(v);
 
   return (
-    <div>
-      <svg width={width} height={height}>
-        {/* Grid from bar ticks */}
-        {barTicks.map((t, i) => (
-          <g key={i}>
-            <line x1={PADDING.left} y1={toBarY(t)} x2={PADDING.left + chartW} y2={toBarY(t)} stroke={colors.border} strokeWidth={0.5} />
-            <text x={PADDING.left - 5} y={toBarY(t) + 4} textAnchor="end" fill={colors.textMuted} fontSize={9}>
-              {formatChartValue(t, fmt)}
-            </text>
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" aria-label="Season combo chart">
+      {/* Grid lines */}
+      {yTicks.map((v) => {
+        const y = yLine(v);
+        return (
+          <g key={v}>
+            <line x1={PAD.left} y1={y} x2={W - PAD.right} y2={y} stroke="#E2E0D8" strokeWidth="1" />
+            <text x={PAD.left - 6} y={y} textAnchor="end" dominantBaseline="middle" fontSize="9" fill="#9BA3A5"
+              fontFamily="Spline Sans Mono,monospace">{v}</text>
           </g>
-        ))}
+        );
+      })}
 
-        {/* Right Y axis (line) */}
-        {lineTicks.map((t, i) => (
-          <text
-            key={i}
-            x={PADDING.left + chartW + 4}
-            y={toLineY(t) + 4}
-            textAnchor="start"
-            fill={lineColors[0] ?? colors.gold}
-            fontSize={9}
-          >
-            {formatChartValue(t, 'percent')}
-          </text>
-        ))}
+      {/* Par line */}
+      {par > 0 && parY >= PAD.top && parY <= PAD.top + CHART_H && (
+        <g>
+          <line x1={PAD.left} y1={parY} x2={W - PAD.right} y2={parY} stroke="#2F6B44" strokeWidth="1" strokeDasharray="4 3" opacity={0.5} />
+          <text x={W - PAD.right + 3} y={parY} dominantBaseline="middle" fontSize="9" fill="#2F6B44" fontFamily="Archivo,sans-serif" fontWeight="700">PAR</text>
+        </g>
+      )}
 
-        {/* Zero line */}
-        <line x1={PADDING.left} y1={barZeroY} x2={PADDING.left + chartW} y2={barZeroY} stroke={colors.border} strokeWidth={1} />
+      {/* Bars */}
+      {data.map((d, i) => {
+        const x = xPos(i);
+        const bH = barH(d.count);
+        if (d.count === 0) return null;
+        return (
+          <rect key={d.month}
+            x={x - barW / 2} y={PAD.top + CHART_H - bH} width={barW} height={bH}
+            fill="#E8F0E9" rx={2}
+          />
+        );
+      })}
 
-        {/* Bars */}
-        {barVals.map((v, i) => {
-          const bx = PADDING.left + i * spacing + (spacing - barW) / 2;
-          const barTop = toBarY(Math.max(v, 0));
-          const barBot = toBarY(Math.min(v, 0));
-          const bh = Math.max(1, barBot - barTop);
-          return (
-            <rect key={i} x={bx} y={barTop} width={barW} height={bh} fill={barColor} opacity={0.7} rx={2} />
-          );
-        })}
+      {/* Score line */}
+      {scorePath && (
+        <path d={scorePath} fill="none" stroke="#C2492E" strokeWidth="2" strokeLinejoin="round" />
+      )}
 
-        {/* Lines */}
-        {data.lines.map((line, si) => {
-          const lc = lineColors[si];
-          const pts = line.values.map((v, i) => ({
-            x: PADDING.left + i * spacing + spacing / 2,
-            y: toLineY(v),
-          }));
-          const pathD = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-          return (
-            <g key={si}>
-              <path d={pathD} stroke={lc} strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-              {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r={3} fill={lc} />)}
-            </g>
-          );
-        })}
+      {/* Score dots */}
+      {data.map((d, i) => {
+        if (d.avgScore == null) return null;
+        return (
+          <circle key={d.month + 'score'} cx={xPos(i)} cy={yLine(d.avgScore)} r={3.5}
+            fill="#C2492E" stroke="#F7F6F1" strokeWidth="1.5" />
+        );
+      })}
 
-        {/* X labels */}
-        {data.labels.map((label, i) => {
-          const step = Math.ceil(n / 8);
-          if (i % step !== 0 && i !== n - 1) return null;
-          return (
-            <text
-              key={i}
-              x={PADDING.left + i * spacing + spacing / 2}
-              y={PADDING.top + chartH + 14}
-              textAnchor="middle"
-              fill={colors.textMuted}
-              fontSize={9}
-            >
-              {label}
-            </text>
-          );
-        })}
-      </svg>
+      {/* Handicap line */}
+      {hcpPath && (
+        <path d={hcpPath} fill="none" stroke="#3B7DC4" strokeWidth="1.5" strokeDasharray="5 3" strokeLinejoin="round" />
+      )}
+
+      {/* Handicap dots */}
+      {data.map((d, i) => {
+        if (d.handicap == null) return null;
+        return (
+          <circle key={d.month + 'hcp'} cx={xPos(i)} cy={yLine(d.handicap)} r={3}
+            fill="#3B7DC4" stroke="#F7F6F1" strokeWidth="1.5" />
+        );
+      })}
+
+      {/* X-axis labels */}
+      {data.map((d, i) => (
+        <text key={d.month} x={xPos(i)} y={H - PAD.bottom + 14} textAnchor="middle"
+          fontSize="9" fill="#9BA3A5" fontFamily="Archivo,sans-serif" fontWeight="700" letterSpacing="0.04em">
+          {d.month.toUpperCase()}
+        </text>
+      ))}
 
       {/* Legend */}
-      <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingLeft: PADDING.left, marginTop: 4 }}>
-        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: barColor, opacity: 0.7 }} />
-          <span style={{ color: colors.textSecondary, fontSize: 10 }}>{data.bars.label}</span>
-        </div>
-        {data.lines.map((l, i) => (
-          <div key={i} style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <div style={{ width: 16, height: 3, borderRadius: 2, backgroundColor: lineColors[i] }} />
-            <span style={{ color: colors.textSecondary, fontSize: 10 }}>{l.label}</span>
-          </div>
-        ))}
-      </div>
-    </div>
+      <g transform={`translate(${PAD.left},${PAD.top - 14})`}>
+        <rect x="0" y="-6" width="8" height="8" fill="#E8F0E9" rx="1" />
+        <text x="11" y="0" fontSize="8" fill="#9BA3A5" fontFamily="Archivo,sans-serif" fontWeight="700" letterSpacing="0.05em">ROUNDS</text>
+        <line x1="52" y1="-2" x2="62" y2="-2" stroke="#C2492E" strokeWidth="2" />
+        <circle cx="57" cy="-2" r="2.5" fill="#C2492E" />
+        <text x="65" y="0" fontSize="8" fill="#9BA3A5" fontFamily="Archivo,sans-serif" fontWeight="700" letterSpacing="0.05em">AVG SCORE</text>
+        <line x1="120" y1="-2" x2="130" y2="-2" stroke="#3B7DC4" strokeWidth="1.5" strokeDasharray="4 2" />
+        <circle cx="125" cy="-2" r="2" fill="#3B7DC4" />
+        <text x="133" y="0" fontSize="8" fill="#9BA3A5" fontFamily="Archivo,sans-serif" fontWeight="700" letterSpacing="0.05em">HANDICAP</text>
+      </g>
+    </svg>
   );
 }

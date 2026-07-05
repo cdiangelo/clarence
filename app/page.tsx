@@ -1,201 +1,154 @@
 'use client';
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/stores/auth';
+import { useRoundsStore } from '@/stores/rounds';
+import { AppShell } from '@/components/layout/AppShell';
+import { ComboChart } from '@/components/charts/ComboChart';
+import { calcHandicapIndex, calcSeasonStats } from '@/lib/handicap';
+import type { RoundInput } from '@/lib/handicap';
 import Link from 'next/link';
-import { usePortfolioStore } from '@/stores/portfolio';
-import { useResearchStore } from '@/stores/research';
-import { useWatchlistStore } from '@/stores/watchlist';
 
 export default function DashboardPage() {
-  const { positions, cash } = usePortfolioStore();
-  const { theses } = useResearchStore();
-  const { entries } = useWatchlistStore();
+  const router = useRouter();
+  const { user } = useAuthStore();
+  const { rounds, loaded, load } = useRoundsStore();
 
-  const totalCost = positions.reduce((s, p) => s + p.shares * p.avgCost, 0);
-  const activeTheses = theses.filter((t) => t.stage === 'active');
-  const developingTheses = theses.filter((t) => t.stage === 'developing');
+  useEffect(() => {
+    if (!user) { router.replace('/auth'); return; }
+    if (!loaded) load();
+  }, [user, loaded, load, router]);
+
+  if (!user) return null;
+
+  const roundInputs: RoundInput[] = rounds
+    .filter((r) => r.courseRating && r.slopeRating)
+    .map((r) => ({
+      id: r.id, date: r.date, score: r.score, holes: r.holes,
+      courseRating: r.courseRating!, slopeRating: r.slopeRating!,
+    }));
+
+  const hcp = calcHandicapIndex(roundInputs);
+  const season = calcSeasonStats(roundInputs);
+  const recent = rounds.slice(0, 6);
+
+  // Build combo chart data (last 12 months)
+  const chartData = season.monthlyData.map((m) => ({
+    month: m.month,
+    count: m.count,
+    avgScore: m.avgScore,
+    handicap: null as number | null,
+  }));
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 lg:px-6 py-6 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="font-mono text-lg font-bold tracking-widest text-ink">DASHBOARD</h1>
-        <p className="text-xs text-ink-muted mt-0.5">
-          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-        </p>
-      </div>
-
-      {/* Stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard label="Positions" value={positions.length.toString()} />
-        <StatCard label="Cost Basis" value={totalCost > 0 ? `$${(totalCost / 1000).toFixed(1)}k` : '—'} />
-        <StatCard label="Active Theses" value={activeTheses.length.toString()} accent="text-gain" />
-        <StatCard label="Watchlist" value={entries.length.toString()} />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Portfolio */}
-        <section>
-          <SectionHeader title="PORTFOLIO" href="/markets" />
-          {positions.length === 0 ? (
-            <EmptyState message="No positions yet. Ask the analyst to add portfolio positions." />
-          ) : (
-            <div className="space-y-2">
-              {positions.slice(0, 6).map((pos) => (
-                <div key={pos.id} className="flex items-center justify-between bg-elevated border border-border rounded-xl px-4 py-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm font-bold text-primary">{pos.ticker}</span>
-                      {pos.name && <span className="text-xs text-ink-muted">{pos.name}</span>}
-                    </div>
-                    {pos.sector && <span className="text-[10px] text-ink-muted">{pos.sector}</span>}
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm text-ink font-mono">{pos.shares} sh</div>
-                    <div className="text-xs text-ink-muted font-mono">${pos.avgCost.toFixed(2)} avg</div>
-                  </div>
-                </div>
-              ))}
-              {positions.length > 6 && (
-                <Link href="/markets" className="block text-center text-xs text-ink-muted hover:text-primary py-1 transition-colors">
-                  +{positions.length - 6} more →
-                </Link>
-              )}
-            </div>
-          )}
-        </section>
-
-        {/* Active Theses */}
-        <section>
-          <SectionHeader title="ACTIVE THESES" href="/research" />
-          {activeTheses.length === 0 && developingTheses.length === 0 ? (
-            <EmptyState message="No theses yet. Ask the analyst to build an investment thesis." />
-          ) : (
-            <div className="space-y-2">
-              {[...activeTheses, ...developingTheses].slice(0, 5).map((t) => (
-                <div key={t.id} className="bg-elevated border border-border rounded-xl px-4 py-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        {t.ticker && <span className="font-mono text-xs font-bold text-primary">{t.ticker}</span>}
-                        <StageChip stage={t.stage} />
-                        <DirChip dir={t.direction} />
-                      </div>
-                      <p className="text-xs text-ink leading-snug line-clamp-1">{t.title}</p>
-                    </div>
-                    <span className="text-xs text-gold flex-shrink-0">{'★'.repeat(t.conviction)}</span>
-                  </div>
-                </div>
-              ))}
-              {theses.length > 5 && (
-                <Link href="/research" className="block text-center text-xs text-ink-muted hover:text-primary py-1 transition-colors">
-                  View all {theses.length} →
-                </Link>
-              )}
-            </div>
-          )}
-        </section>
-
-        {/* Watchlist */}
-        <section>
-          <SectionHeader title="WATCHLIST" href="/markets" />
-          {entries.length === 0 ? (
-            <EmptyState message="Watchlist empty. Ask the analyst to add tickers." />
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {entries.map((e) => (
-                <div key={e.id} className="bg-elevated border border-border rounded-lg px-3 py-2">
-                  <span className="font-mono text-sm font-bold text-ink">{e.ticker}</span>
-                  {e.name && <span className="block text-[10px] text-ink-muted">{e.name}</span>}
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Quick actions */}
-        <section>
-          <div className="text-[10px] font-mono font-semibold text-ink-muted tracking-wider mb-3">QUICK ACTIONS</div>
-          <div className="grid grid-cols-1 gap-2">
-            <QuickLink href="/chat" label="Open Analyst" description="Ask questions, run analysis, build theses" icon="◉" />
-            <QuickLink href="/research" label="Research" description="Manage investment theses and frameworks" icon="◧" />
-            <QuickLink href="/reports" label="Reports" description="Generate PDF research reports" icon="▤" />
+    <AppShell>
+      <div className="px-4 py-5 space-y-5 pb-4">
+        {/* Handicap hero */}
+        <div className="bg-turf text-white rounded-2xl px-5 py-4">
+          <div className="text-[10px] font-display tracking-widest opacity-70 mb-1">HANDICAP INDEX</div>
+          <div className="flex items-end gap-3">
+            <span className="text-5xl font-display tracking-wider">
+              {hcp.handicapIndex != null ? hcp.handicapIndex.toFixed(1) : '—'}
+            </span>
+            {hcp.handicapIndex == null && (
+              <span className="text-sm opacity-70 mb-1">
+                {hcp.message ?? 'Log more rounds'}
+              </span>
+            )}
           </div>
-        </section>
+          <div className="text-[10px] opacity-60 mt-1 font-display tracking-wider">
+            {hcp.roundsUsed > 0 ? `BEST ${hcp.roundsUsed} OF ${Math.min(rounds.length, 20)} DIFFERENTIALS` : 'WORLD HANDICAP SYSTEM'}
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-3 gap-2.5">
+          <StatCard label="Rounds" value={season.roundsYTD.toString()} sub={new Date().getFullYear().toString()} />
+          <StatCard
+            label="Avg Score"
+            value={season.avgScore != null ? season.avgScore.toFixed(1) : '—'}
+          />
+          <StatCard
+            label="Best Diff"
+            value={season.lowestDiff != null ? season.lowestDiff.toFixed(1) : '—'}
+            sub="this year"
+          />
+        </div>
+
+        {/* Season chart */}
+        {season.roundsYTD > 0 && (
+          <div className="bg-card border border-border rounded-xl p-3">
+            <div className="eyebrow mb-3">Season Overview</div>
+            <ComboChart data={chartData} />
+          </div>
+        )}
+
+        {/* Recent rounds */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <span className="eyebrow">Recent Rounds</span>
+            <Link href="/log" className="text-[10px] font-display tracking-wider text-turf">+ LOG ROUND</Link>
+          </div>
+          {recent.length === 0 ? (
+            <div className="bg-card border border-border border-dashed rounded-xl px-4 py-6 text-center">
+              <p className="text-sm text-ink-soft mb-3">No rounds logged yet.</p>
+              <Link href="/log" className="inline-block bg-turf text-white font-display tracking-wider text-xs px-4 py-2 rounded-lg">
+                LOG YOUR FIRST ROUND
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {recent.map((r) => {
+                const diff = r.courseRating && r.slopeRating
+                  ? (((r.score - r.courseRating) * 113) / r.slopeRating).toFixed(1)
+                  : null;
+                return (
+                  <div key={r.id} className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-ink truncate">{r.courseName}</div>
+                      <div className="text-[10px] text-ink-muted mt-0.5">
+                        {new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {' · '}{r.holes}H
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-lg stat-num font-bold text-ink">{r.score}</div>
+                      {diff && <div className="text-[10px] text-ink-muted">{diff} diff</div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Quick links */}
+        {rounds.length === 0 && (
+          <div className="grid grid-cols-2 gap-2.5">
+            <QuickLink href="/bag" label="Set Up Bag" desc="Add your clubs" />
+            <QuickLink href="/chat" label="Ask Caddie" desc="Get started" />
+          </div>
+        )}
       </div>
+    </AppShell>
+  );
+}
+
+function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="bg-card border border-border rounded-xl px-3 py-3 text-center">
+      <div className="text-xl stat-num font-bold text-ink">{value}</div>
+      <div className="text-[9px] font-display tracking-wider text-ink-soft mt-0.5">{label.toUpperCase()}</div>
+      {sub && <div className="text-[9px] text-ink-muted">{sub}</div>}
     </div>
   );
 }
 
-function StatCard({ label, value, accent = 'text-ink' }: { label: string; value: string; accent?: string }) {
+function QuickLink({ href, label, desc }: { href: string; label: string; desc: string }) {
   return (
-    <div className="bg-elevated border border-border rounded-xl px-4 py-3">
-      <div className={`text-xl font-mono font-bold ${accent}`}>{value}</div>
-      <div className="text-[10px] text-ink-muted font-mono tracking-wider mt-0.5">{label}</div>
-    </div>
-  );
-}
-
-function SectionHeader({ title, href }: { title: string; href: string }) {
-  return (
-    <div className="flex items-center justify-between mb-3">
-      <span className="text-[10px] font-mono font-semibold text-ink-muted tracking-wider">{title}</span>
-      <Link href={href} className="text-[10px] text-ink-muted hover:text-primary transition-colors">
-        View all →
-      </Link>
-    </div>
-  );
-}
-
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div className="bg-elevated border border-border border-dashed rounded-xl px-4 py-6 text-center">
-      <p className="text-xs text-ink-muted">{message}</p>
-      <Link href="/chat" className="inline-block mt-2 text-xs text-primary hover:text-primary-light transition-colors">
-        Open Analyst →
-      </Link>
-    </div>
-  );
-}
-
-function StageChip({ stage }: { stage: string }) {
-  const cls: Record<string, string> = {
-    active: 'text-gain bg-gain/10',
-    developing: 'text-gold bg-gold/10',
-    testing: 'text-primary bg-primary/10',
-    watching: 'text-ink-secondary bg-elevated',
-    closed: 'text-ink-muted bg-surface',
-  };
-  return (
-    <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${cls[stage] ?? ''}`}>
-      {stage}
-    </span>
-  );
-}
-
-function DirChip({ dir }: { dir: string }) {
-  const cls: Record<string, string> = {
-    long: 'text-gain bg-gain/10',
-    short: 'text-loss bg-loss/10',
-    neutral: 'text-ink-secondary bg-elevated',
-  };
-  return (
-    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${cls[dir] ?? ''}`}>
-      {dir.toUpperCase()}
-    </span>
-  );
-}
-
-function QuickLink({ href, label, description, icon }: { href: string; label: string; description: string; icon: string }) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center gap-3 bg-elevated border border-border hover:border-border-light rounded-xl px-4 py-3 transition-colors group"
-    >
-      <span className="text-lg text-ink-muted group-hover:text-primary transition-colors">{icon}</span>
-      <div>
-        <div className="text-sm font-medium text-ink">{label}</div>
-        <div className="text-[10px] text-ink-muted">{description}</div>
-      </div>
+    <Link href={href} className="bg-card border border-border hover:border-turf/50 rounded-xl px-4 py-3 transition-colors">
+      <div className="text-sm font-semibold text-ink">{label}</div>
+      <div className="text-xs text-ink-muted mt-0.5">{desc}</div>
     </Link>
   );
 }
