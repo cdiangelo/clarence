@@ -157,4 +157,83 @@ export const CLUBS: ClubModel[] = [
   { id: 'lab-link1-22',             brand:'L.A.B.', family:'Link', model:'Link.1 Putter', year:2022, type:'putter', category:'standard', stockShaft:'L.A.B. Arm Lock' },
   { id: 'bet-bb1-23',               brand:'Bettinardi', family:'BB', model:'BB1 Flow Putter', year:2023, type:'putter', category:'standard', stockShaft:'Lamkin Sinkfit' },
   { id: 'bet-qb6-23',               brand:'Bettinardi', family:'Queen B', model:'Queen B 6 Putter', year:2023, type:'putter', category:'standard', stockShaft:'Lamkin Sinkfit' },
+
+  // ─── COBRA ──────────────────────────────────────────────────
+  { id: 'cob-ltdx-dr-22',           brand:'Cobra', family:'LTDx', model:'LTDx Driver', year:2022, type:'driver', category:'players_distance', stockShaft:'UST Helium Nanocore 60', stockLoft:9, carryBase:243 },
+  { id: 'cob-ltdxmax-dr-22',        brand:'Cobra', family:'LTDx', model:'LTDx Max Driver', year:2022, type:'driver', category:'max_gi', stockShaft:'UST Helium Nanocore 50', stockLoft:10.5, carryBase:248 },
+  { id: 'cob-ltdxls-dr-22',         brand:'Cobra', family:'LTDx', model:'LTDx LS Driver', year:2022, type:'driver', category:'players_cb', stockShaft:'UST Helium Nanocore 60TX', stockLoft:8, carryBase:237 },
+  { id: 'cob-aerojet-dr-23',        brand:'Cobra', family:'Aerojet', model:'Aerojet Driver', year:2023, type:'driver', category:'players_distance', stockShaft:'Fujikura Speeder NX 60', stockLoft:9, carryBase:242 },
+  { id: 'cob-aerojetls-dr-23',      brand:'Cobra', family:'Aerojet', model:'Aerojet LS Driver', year:2023, type:'driver', category:'players_cb', stockShaft:'Fujikura Speeder NX 60X', stockLoft:9, carryBase:236 },
+  { id: 'cob-darkspeedmax-dr-24',   brand:'Cobra', family:'Darkspeed', model:'Darkspeed Max Driver', year:2024, type:'driver', category:'max_gi', stockShaft:'Fujikura Speeder NX Black 50', stockLoft:10.5, carryBase:250 },
+  { id: 'cob-ltdx-3w-22',           brand:'Cobra', family:'LTDx', model:'LTDx Max 3-Wood', year:2022, type:'fw', category:'max_gi', stockShaft:'UST Helium Nanocore 50', stockLoft:15, carryBase:222 },
+  { id: 'cob-ltdx-3h-22',           brand:'Cobra', family:'LTDx', model:'LTDx 3-Hybrid', year:2022, type:'hybrid', category:'game_improvement', stockShaft:'UST Helium Nanocore 70', stockLoft:19, carryBase:206 },
+  { id: 'cob-ltdx-iron-22',         brand:'Cobra', family:'King LTDx', model:'King LTDx Irons', year:2022, type:'iron', category:'game_improvement', stockShaft:'KBS Max 85', stock7iLoft:29, carryBase:163 },
+  { id: 'cob-ltdxone-iron-22',      brand:'Cobra', family:'King LTDx', model:'King LTDx One Length Irons', year:2022, type:'iron', category:'max_gi', stockShaft:'KBS Max 85', stock7iLoft:27, carryBase:168 },
+  { id: 'cob-radspeed-iron-21',     brand:'Cobra', family:'Radspeed', model:'Radspeed Irons', year:2021, type:'iron', category:'game_improvement', stockShaft:'KBS MAX 85 MT', stock7iLoft:30, carryBase:161 },
+  { id: 'cob-king-tour-iron-23',    brand:'Cobra', family:'King Tour', model:'King Tour Irons', year:2023, type:'iron', category:'blade', stockShaft:'True Temper Dynamic Gold S300', stock7iLoft:38, carryBase:140 },
+
+  // ─── CALLAWAY (older & additional lines) ────────────────────
+  { id: 'cal-apex21-iron',          brand:'Callaway', family:'Apex', model:'Apex 21 Irons', year:2021, type:'iron', category:'players_cb', stockShaft:'True Temper Elevate 95', stock7iLoft:36.5, carryBase:149 },
+  { id: 'cal-apexpro21-iron',       brand:'Callaway', family:'Apex Pro', model:'Apex Pro 21 Irons', year:2021, type:'iron', category:'blade', stockShaft:'True Temper Dynamic Gold 120', stock7iLoft:38, carryBase:141 },
+  { id: 'cal-apex24-iron',          brand:'Callaway', family:'Apex', model:'Apex 24 Irons', year:2024, type:'iron', category:'players_cb', stockShaft:'True Temper Elevate 95', stock7iLoft:36, carryBase:149 },
+  { id: 'cal-roguestmax-iron-22',   brand:'Callaway', family:'Rogue ST', model:'Rogue ST Max Irons', year:2022, type:'iron', category:'game_improvement', stockShaft:'True Temper Elevate 95', stock7iLoft:29, carryBase:163 },
+  { id: 'cal-roguestpro-iron-22',   brand:'Callaway', family:'Rogue ST', model:'Rogue ST Pro Irons', year:2022, type:'iron', category:'players_distance', stockShaft:'True Temper Elevate 95', stock7iLoft:33, carryBase:155 },
+  { id: 'cal-roguestmaxos-iron-22', brand:'Callaway', family:'Rogue ST', model:'Rogue ST Max OS Irons', year:2022, type:'iron', category:'max_gi', stockShaft:'KBS Max MT 85', stock7iLoft:27, carryBase:168 },
+  { id: 'cal-mavrik-iron-20',       brand:'Callaway', family:'MAVRIK', model:'MAVRIK Irons', year:2020, type:'iron', category:'game_improvement', stockShaft:'True Temper Elevate 95', stock7iLoft:30, carryBase:161 },
+  { id: 'cal-mavrikmax-iron-20',    brand:'Callaway', family:'MAVRIK', model:'MAVRIK Max Irons', year:2020, type:'iron', category:'max_gi', stockShaft:'KBS Max MT 85', stock7iLoft:27, carryBase:167 },
+  { id: 'cal-roguestmax-dr-22',     brand:'Callaway', family:'Rogue ST', model:'Rogue ST Max Driver', year:2022, type:'driver', category:'max_gi', stockShaft:'Project X HZRDUS Smoke Black RDX 60', stockLoft:9, carryBase:246 },
+
+  // ─── TAYLORMADE (older & additional lines) ──────────────────
+  { id: 'tm-stealth2-iron-23',      brand:'TaylorMade', family:'Stealth 2', model:'Stealth 2 Irons', year:2023, type:'iron', category:'players_distance', stockShaft:'KBS Max 85 MT', stock7iLoft:31, carryBase:157 },
+  { id: 'tm-stealth2hd-iron-23',    brand:'TaylorMade', family:'Stealth 2', model:'Stealth 2 HD Irons', year:2023, type:'iron', category:'max_gi', stockShaft:'KBS Max 85 MT', stock7iLoft:27, carryBase:168 },
+  { id: 'tm-stealth-iron-22',       brand:'TaylorMade', family:'Stealth', model:'Stealth Irons', year:2022, type:'iron', category:'game_improvement', stockShaft:'KBS Max 85 MT', stock7iLoft:30, carryBase:162 },
+  { id: 'tm-sim2max-iron-21',       brand:'TaylorMade', family:'SIM2', model:'SIM2 Max Irons', year:2021, type:'iron', category:'game_improvement', stockShaft:'KBS Max 85 MT', stock7iLoft:30, carryBase:161 },
+  { id: 'tm-sim2-iron-21',          brand:'TaylorMade', family:'SIM2', model:'SIM2 Irons', year:2021, type:'iron', category:'players_distance', stockShaft:'KBS Tour 105', stock7iLoft:32, carryBase:155 },
+  { id: 'tm-p7tw-iron-23',          brand:'TaylorMade', family:'P Series', model:'P7TW Irons', year:2023, type:'iron', category:'blade', stockShaft:'True Temper Dynamic Gold S300', stock7iLoft:38.5, carryBase:138 },
+  { id: 'tm-stealth2-dr-23',        brand:'TaylorMade', family:'Stealth 2', model:'Stealth 2 Driver', year:2023, type:'driver', category:'players_distance', stockShaft:'Fujikura Ventus TR Blue 6', stockLoft:9, carryBase:244 },
+  { id: 'tm-stealth2plus-dr-23',    brand:'TaylorMade', family:'Stealth 2', model:'Stealth 2+ Driver', year:2023, type:'driver', category:'players_cb', stockShaft:'Fujikura Ventus TR Black 6', stockLoft:9, carryBase:237 },
+  { id: 'tm-qi10-5w-24',            brand:'TaylorMade', family:'Qi10', model:'5-Wood', year:2024, type:'fw', category:'game_improvement', stockShaft:'Fujikura Speeder NX 55', stockLoft:19, carryBase:208 },
+  { id: 'tm-qi10-3h-24',            brand:'TaylorMade', family:'Qi10', model:'3-Hybrid', year:2024, type:'hybrid', category:'game_improvement', stockShaft:'Fujikura Speeder NX 65', stockLoft:19, carryBase:206 },
+  { id: 'tm-mg4-52',                brand:'TaylorMade', family:'MG4', model:'52° Wedge', year:2024, type:'wedge', category:'standard', stockShaft:'KBS Hi-Rev 2.0 115', stockLoft:52, carryBase:112 },
+  { id: 'tm-mg4-60',                brand:'TaylorMade', family:'MG4', model:'60° Wedge', year:2024, type:'wedge', category:'standard', stockShaft:'KBS Hi-Rev 2.0 115', stockLoft:60, carryBase:80 },
+
+  // ─── TITLEIST (additional models) ───────────────────────────
+  { id: 'tit-t100s-iron-21',        brand:'Titleist', family:'T Series', model:'T100S Irons (2021)', year:2021, type:'iron', category:'players_distance', stockShaft:'True Temper AMT Tour White', stock7iLoft:33.5, carryBase:153 },
+  { id: 'tit-t100s-iron-23',        brand:'Titleist', family:'T Series', model:'T100S Irons (2023)', year:2023, type:'iron', category:'players_distance', stockShaft:'True Temper AMT Tour White', stock7iLoft:33.5, carryBase:153 },
+  { id: 'tit-t300-iron-23',         brand:'Titleist', family:'T Series', model:'T300 Irons', year:2023, type:'iron', category:'max_gi', stockShaft:'True Temper AMT Red', stock7iLoft:29, carryBase:165 },
+  { id: 'tit-tsr2-dr-22',           brand:'Titleist', family:'TSR', model:'TSR2 Driver', year:2022, type:'driver', category:'players_distance', stockShaft:'HZRDUS Red 6X Gen 4', stockLoft:9, carryBase:237 },
+  { id: 'tit-tsr3-dr-22',           brand:'Titleist', family:'TSR', model:'TSR3 Driver', year:2022, type:'driver', category:'players_cb', stockShaft:'HZRDUS Black 6X Gen 4', stockLoft:9, carryBase:231 },
+  { id: 'tit-sm9-52',               brand:'Titleist', family:'Vokey SM9', model:'52° Wedge', year:2022, type:'wedge', category:'standard', stockShaft:'True Temper Dynamic Gold Wedge', stockLoft:52, carryBase:112 },
+  { id: 'tit-sm10-52',              brand:'Titleist', family:'Vokey SM10', model:'52° Wedge', year:2024, type:'wedge', category:'standard', stockShaft:'True Temper Dynamic Gold Wedge', stockLoft:52, carryBase:112 },
+  { id: 'tit-sm10-54',              brand:'Titleist', family:'Vokey SM10', model:'54° Wedge', year:2024, type:'wedge', category:'standard', stockShaft:'True Temper Dynamic Gold Wedge', stockLoft:54, carryBase:106 },
+  { id: 'tit-sm10-58',              brand:'Titleist', family:'Vokey SM10', model:'58° Wedge', year:2024, type:'wedge', category:'standard', stockShaft:'True Temper Dynamic Gold Wedge', stockLoft:58, carryBase:90 },
+
+  // ─── PING (additional models) ────────────────────────────────
+  { id: 'png-g425max-dr-21',        brand:'Ping', family:'G425', model:'G425 Max Driver', year:2021, type:'driver', category:'max_gi', stockShaft:'ALTA CB Black 55', stockLoft:9, carryBase:249 },
+  { id: 'png-g425lst-dr-21',        brand:'Ping', family:'G425', model:'G425 LST Driver', year:2021, type:'driver', category:'players_distance', stockShaft:'PING Tour 2.0 Chrome 65', stockLoft:9, carryBase:240 },
+  { id: 'png-g425-iron-21',         brand:'Ping', family:'G425', model:'G425 Irons', year:2021, type:'iron', category:'game_improvement', stockShaft:'AWT 2.0', stock7iLoft:30, carryBase:163 },
+  { id: 'png-g425-hybrid-21',       brand:'Ping', family:'G425', model:'G425 Hybrid', year:2021, type:'hybrid', category:'game_improvement', stockShaft:'ALTA CB Black 70', stockLoft:19, carryBase:205 },
+  { id: 'png-g430-5w-23',           brand:'Ping', family:'G430', model:'Max 5-Wood', year:2023, type:'fw', category:'max_gi', stockShaft:'ALTA CB Black 55', stockLoft:18, carryBase:210 },
+
+  // ─── MIZUNO (older models) ────────────────────────────────────
+  { id: 'miz-jpx921hm-iron-21',     brand:'Mizuno', family:'JPX 921', model:'JPX 921 Hot Metal Irons', year:2021, type:'iron', category:'game_improvement', stockShaft:'KBS Max MT 85', stock7iLoft:31, carryBase:161 },
+  { id: 'miz-jpx923hm-iron-23',     brand:'Mizuno', family:'JPX 923', model:'JPX 923 Hot Metal Irons', year:2023, type:'iron', category:'game_improvement', stockShaft:'KBS Max MT 85', stock7iLoft:30, carryBase:163 },
+  { id: 'miz-pro221-iron-21',       brand:'Mizuno', family:'Pro', model:'Pro 221 Irons', year:2021, type:'iron', category:'blade', stockShaft:'True Temper Dynamic Gold 120', stock7iLoft:38, carryBase:140 },
+  { id: 'miz-pro225-iron-21',       brand:'Mizuno', family:'Pro', model:'Pro 225 Irons', year:2021, type:'iron', category:'players_distance', stockShaft:'True Temper Dynamic Gold 105', stock7iLoft:33, carryBase:154 },
+
+  // ─── CLEVELAND (irons) ───────────────────────────────────────
+  { id: 'cle-launcherxl-iron-22',   brand:'Cleveland', family:'Launcher XL', model:'Launcher XL Irons', year:2022, type:'iron', category:'max_gi', stockShaft:'Action Ultralite 55', stock7iLoft:28, carryBase:167 },
+  { id: 'cle-launcherxl2-iron-23',  brand:'Cleveland', family:'Launcher XL2', model:'Launcher XL2 Irons', year:2023, type:'iron', category:'max_gi', stockShaft:'Action Ultralite 45', stock7iLoft:27, carryBase:169 },
+  { id: 'cle-launcherhb-iron-23',   brand:'Cleveland', family:'Launcher HB', model:'Launcher HB Turbo Irons', year:2023, type:'iron', category:'game_improvement', stockShaft:'Action Ultralite 65', stock7iLoft:30, carryBase:162 },
+  { id: 'cle-rtx6-52',              brand:'Cleveland', family:'RTX 6 ZipCore', model:'RTX 6 52° Wedge', year:2022, type:'wedge', category:'standard', stockShaft:'True Temper Dynamic Gold', stockLoft:52, carryBase:112 },
+
+  // ─── WILSON ──────────────────────────────────────────────────
+  { id: 'wil-d9-iron-22',           brand:'Wilson', family:'D9', model:'D9 Irons', year:2022, type:'iron', category:'game_improvement', stockShaft:'KBS Max 65', stock7iLoft:31, carryBase:160 },
+  { id: 'wil-d9max-iron-22',        brand:'Wilson', family:'D9', model:'D9 Max Irons', year:2022, type:'iron', category:'max_gi', stockShaft:'KBS Max 65', stock7iLoft:28, carryBase:167 },
+  { id: 'wil-staff-model-iron-22',  brand:'Wilson', family:'Staff Model', model:'Staff Model Blade Irons', year:2022, type:'iron', category:'blade', stockShaft:'True Temper Dynamic Gold', stock7iLoft:38, carryBase:139 },
+  { id: 'wil-d9-dr-22',             brand:'Wilson', family:'D9', model:'D9 Driver', year:2022, type:'driver', category:'game_improvement', stockShaft:'Aldila Synergy 60', stockLoft:9, carryBase:240 },
+
+  // ─── SRIXON (older models) ───────────────────────────────────
+  { id: 'srx-zx5-iron-21',          brand:'Srixon', family:'ZX', model:'ZX5 Irons (2021)', year:2021, type:'iron', category:'players_distance', stockShaft:'True Temper Dynamic Gold 105', stock7iLoft:34, carryBase:153 },
+  { id: 'srx-zx7-iron-21',          brand:'Srixon', family:'ZX', model:'ZX7 Irons (2021)', year:2021, type:'iron', category:'players_cb', stockShaft:'True Temper Dynamic Gold 120', stock7iLoft:37, carryBase:146 },
 ];

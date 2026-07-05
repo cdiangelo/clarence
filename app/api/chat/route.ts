@@ -4,6 +4,7 @@ import { callClaude } from '@/lib/claude';
 import { buildGolfSystemPrompt } from '@/lib/prompts';
 import { calcHandicapIndex, calcSeasonStats } from '@/lib/handicap';
 import { query } from '@/db/client';
+import { COURSES } from '@/data/courses';
 import type { Message, TextBlock, ToolUseBlock, ToolResultBlock } from '@/lib/claude';
 
 export const maxDuration = 120;
@@ -77,8 +78,16 @@ export async function POST(req: NextRequest) {
       case 'get_weather': {
         const { lat, lng, location } = input as { lat: number; lng: number; location?: string };
         try {
-          const base = req.nextUrl.origin;
-          const res = await fetch(`${base}/api/weather?lat=${lat}&lng=${lng}`);
+          const url = new URL('https://api.open-meteo.com/v1/forecast');
+          url.searchParams.set('latitude', String(lat));
+          url.searchParams.set('longitude', String(lng));
+          url.searchParams.set('current', 'temperature_2m,wind_speed_10m,wind_direction_10m,precipitation,weather_code,relative_humidity_2m');
+          url.searchParams.set('hourly', 'temperature_2m,precipitation_probability,wind_speed_10m,weather_code');
+          url.searchParams.set('temperature_unit', 'fahrenheit');
+          url.searchParams.set('wind_speed_unit', 'mph');
+          url.searchParams.set('forecast_days', '1');
+          url.searchParams.set('timezone', 'auto');
+          const res = await fetch(url.toString());
           if (!res.ok) return 'Weather data unavailable';
           const data = await res.json();
           return JSON.stringify({ location: location ?? `${lat},${lng}`, ...data });
@@ -88,11 +97,68 @@ export async function POST(req: NextRequest) {
       case 'search_courses': {
         const { query: q } = input as { query: string };
         try {
-          const base = req.nextUrl.origin;
-          const res = await fetch(`${base}/api/courses?q=${encodeURIComponent(q)}`);
-          const data = await res.json();
-          return JSON.stringify(data);
-        } catch { return 'Course search error'; }
+          // 1. DB search
+          const dbRows = await query<{
+            id: string; name: string; city: string; state: string;
+            lat: number; lng: number; par: number;
+            rating18: number | null; slope18: number | null; holes_count: number; verified: boolean;
+          }>(
+            `SELECT id, name, city, state, lat, lng, par, rating18, slope18, holes_count, verified
+             FROM courses WHERE name ILIKE $1 OR city ILIKE $1 ORDER BY verified DESC, name LIMIT 8`,
+            [`%${q}%`],
+          ).catch(() => []);
+
+          if (dbRows.length >= 3) {
+            return JSON.stringify({ courses: dbRows.map((r) => ({ ...r, holes: r.holes_count })) });
+          }
+
+          // 2. Seed data
+          const seedMatches = COURSES.filter((c) =>
+            c.name.toLowerCase().includes(q.toLowerCase()) ||
+            c.city.toLowerCase().includes(q.toLowerCase())
+          ).slice(0, 8);
+
+          if (seedMatches.length >= 3) {
+            return JSON.stringify({ courses: seedMatches });
+          }
+
+          // 3. Golf Course API
+          if (GCA_KEY) {
+            const res = await fetch(
+              `${GCA_BASE}/search?search_query=${encodeURIComponent(q)}`,
+              { headers: { Authorization: `Key ${GCA_KEY}` } },
+            );
+            if (res.ok) {
+              const data = await res.json() as {
+                courses?: {
+                  id: string | number; club_name: string; course_name?: string;
+                  location?: { city?: string; state?: string; latitude?: number; longitude?: number };
+                  holes?: number;
+                  tees?: { male?: { name: string; course_rating: number; slope_rating: number; par: number }[] };
+                }[]
+              };
+              const courses = (data.courses ?? []).slice(0, 8).map((c) => {
+                const blueTees = c.tees?.male?.find((t) => /blue/i.test(t.name));
+                const whiteTees = c.tees?.male?.find((t) => /white/i.test(t.name));
+                const tee = blueTees ?? whiteTees ?? c.tees?.male?.[0];
+                return {
+                  id: `gca-${c.id}`,
+                  name: c.course_name ? `${c.club_name} — ${c.course_name}` : c.club_name,
+                  city: c.location?.city ?? '',
+                  state: c.location?.state ?? '',
+                  par: tee?.par ?? 72,
+                  rating18: tee?.course_rating,
+                  slope18: tee?.slope_rating,
+                  holes: c.holes === 9 ? 9 : 18,
+                  verified: false,
+                };
+              });
+              return JSON.stringify({ courses: [...seedMatches, ...courses].slice(0, 8) });
+            }
+          }
+
+          return JSON.stringify({ courses: seedMatches });
+        } catch (e) { return `Course search error: ${(e as Error).message}`; }
       }
 
       case 'get_course_holes': {
@@ -106,9 +172,10 @@ export async function POST(req: NextRequest) {
             [courseId],
           );
           if (holes.length === 0) {
-            // Try Golf Course API for holes
-            if (GCA_KEY && !courseId.startsWith('gca-')) {
-              const res = await fetch(`${GCA_BASE}/courses/${courseId}`, {
+            // GCA courses have 'gca-{id}' prefixed IDs — strip prefix and call the API
+            if (GCA_KEY && courseId.startsWith('gca-')) {
+              const apiId = courseId.replace(/^gca-/, '');
+              const res = await fetch(`${GCA_BASE}/courses/${apiId}`, {
                 headers: { Authorization: `Key ${GCA_KEY}` },
               });
               if (res.ok) {
