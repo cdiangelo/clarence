@@ -1,6 +1,7 @@
 // Shared client for api.golfcourseapi.com — the real response shape wraps
 // course detail under a `course` key, and hole-by-hole data lives nested
 // inside `tees.male[].holes` / `tees.female[].holes`, not at the top level.
+import { fetchWithTimeout } from './http';
 
 const GCA_BASE = 'https://api.golfcourseapi.com/v1';
 
@@ -81,18 +82,6 @@ export function extractHoles(c: GcaCourseRaw): HoleData[] | null {
     yardage: h.yardage,
     handicap: h.handicap,
   }));
-}
-
-const REQUEST_UA = 'Clarence-Golf-App/1.0 (+https://clarence-1zva.onrender.com)';
-
-async function fetchWithTimeout(url: string, headers: Record<string, string>, timeoutMs = 8000): Promise<Response> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { headers: { 'User-Agent': REQUEST_UA, ...headers }, signal: controller.signal });
-  } finally {
-    clearTimeout(timeout);
-  }
 }
 
 export async function gcaSearch(query: string, apiKey: string): Promise<GcaCourseRaw[]> {

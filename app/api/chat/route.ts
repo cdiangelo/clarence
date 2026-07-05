@@ -6,6 +6,7 @@ import { calcHandicapIndex, calcSeasonStats } from '@/lib/handicap';
 import { query } from '@/db/client';
 import { COURSES } from '@/data/courses';
 import { gcaSearch, gcaCourseDetail, normalizeSearchResult, extractHoles } from '@/lib/golfCourseApi';
+import { getWeather } from '@/lib/weather';
 import type { Message, TextBlock, ToolUseBlock, ToolResultBlock } from '@/lib/claude';
 
 export const maxDuration = 120;
@@ -111,32 +112,7 @@ export async function POST(req: NextRequest) {
     switch (name) {
       case 'get_weather': {
         const { lat, lng, location } = input as { lat: number; lng: number; location?: string };
-        try {
-          const url = new URL('https://api.open-meteo.com/v1/forecast');
-          url.searchParams.set('latitude', String(lat));
-          url.searchParams.set('longitude', String(lng));
-          url.searchParams.set('current', 'temperature_2m,wind_speed_10m,wind_direction_10m,precipitation,weather_code,relative_humidity_2m');
-          url.searchParams.set('hourly', 'temperature_2m,precipitation_probability,wind_speed_10m,weather_code');
-          url.searchParams.set('temperature_unit', 'fahrenheit');
-          url.searchParams.set('wind_speed_unit', 'mph');
-          url.searchParams.set('forecast_days', '1');
-          url.searchParams.set('timezone', 'auto');
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 8000);
-          const res = await fetch(url.toString(), {
-            signal: controller.signal,
-            headers: { 'User-Agent': 'Clarence-Golf-App/1.0 (+https://clarence-1zva.onrender.com)' },
-          }).finally(() => clearTimeout(timeout));
-          if (!res.ok) {
-            console.error('[get_weather] open-meteo non-ok', res.status, await res.text().catch(() => ''));
-            return 'Weather data unavailable';
-          }
-          const data = await res.json();
-          return JSON.stringify({ location: location ?? `${lat},${lng}`, ...data });
-        } catch (e) {
-          console.error('[get_weather] fetch failed', e);
-          return 'Weather service error';
-        }
+        return getWeather(lat, lng, location);
       }
 
       case 'search_courses': {
