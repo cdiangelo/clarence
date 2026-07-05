@@ -1,11 +1,14 @@
 // Central course-data resolution layer. Every caller that needs a course's
 // profile (par/rating/slope/location) or its hole-by-hole layout goes
-// through here instead of re-implementing the DB → GCA → estimate fallback
-// chain in each API route — that duplication is exactly how the "seed
-// courses can never reach GCA" bug happened in the first place.
+// through here instead of re-implementing the DB → GCA fallback chain in
+// each API route — that duplication is exactly how the "seed courses can
+// never reach GCA" bug happened in the first place.
+//
+// This never fabricates data. If neither our DB nor the Golf Course API has
+// a real scorecard for a course, resolveHoles() returns an empty result —
+// callers must show an honest "not available" state, not an invented one.
 import { query } from '@/db/client';
-import { gcaCourseDetail, extractHoles, findHolesByName, normalizeSearchResult } from './golfCourseApi';
-import { extrapolateHoles, type HoleProfile } from './holeExtrapolation';
+import { gcaCourseDetail, extractHoles, findHolesByName, normalizeSearchResult, type HoleData } from './golfCourseApi';
 
 const GCA_KEY = process.env.GOLF_COURSE_API_KEY ?? '';
 
@@ -25,8 +28,8 @@ export interface CourseProfile {
 }
 
 export interface ResolvedHoles {
-  holes: HoleProfile[];
-  source: 'db' | 'gca' | 'estimated';
+  holes: HoleData[];
+  source: 'db' | 'gca' | 'none';
 }
 
 export async function resolveCourseProfile(courseId: string): Promise<CourseProfile | null> {
@@ -59,17 +62,12 @@ export async function resolveCourseProfile(courseId: string): Promise<CourseProf
   };
 }
 
-// Resolves hole-by-hole layout with a three-tier fallback:
-//   1. Real data already in our DB (course_holes)
-//   2. Real data from the Golf Course API (direct id, or by-name search
-//      when the course has a local, non-GCA id)
-//   3. A plausible extrapolated layout from the course's total par — always
-//      succeeds as long as *a* par is known, and every hole is flagged
-//      `estimated: true` so callers never present it as the real scorecard
-export async function resolveHoles(
-  courseId: string,
-  fallback?: { par?: number; holes?: 9 | 18; name?: string },
-): Promise<ResolvedHoles> {
+// Resolves hole-by-hole layout — real data only:
+//   1. Already in our DB (course_holes)
+//   2. The Golf Course API (direct id, or by-name search when the course
+//      has a local, non-GCA id)
+// If neither has it, returns an empty result. No estimation, ever.
+export async function resolveHoles(courseId: string): Promise<ResolvedHoles> {
   const dbHoles = await query<{
     hole_num: number; par: number; yards_blue: number | null; yards_white: number | null; hdcp: number | null;
   }>(
@@ -83,35 +81,24 @@ export async function resolveHoles(
       holes: dbHoles.map((h) => ({
         holeNumber: h.hole_num, par: h.par,
         yardage: h.yards_blue ?? h.yards_white ?? undefined,
-        handicap: h.hdcp ?? undefined, estimated: false,
+        handicap: h.hdcp ?? undefined,
       })),
     };
   }
 
-  // Only fetched once, lazily, if neither the caller's fallback nor the
-  // faster paths above already gave us what we need
-  let profile: CourseProfile | null | undefined;
-  async function getProfile(): Promise<CourseProfile | null> {
-    if (profile === undefined) profile = await resolveCourseProfile(courseId);
-    return profile;
-  }
-
   if (GCA_KEY) {
-    let rawHoles = null;
+    let rawHoles: HoleData[] | null = null;
     if (courseId.startsWith('gca-')) {
       const detail = await gcaCourseDetail(courseId.replace(/^gca-/, ''), GCA_KEY);
       rawHoles = detail ? extractHoles(detail) : null;
     } else {
-      const name = fallback?.name ?? (await getProfile())?.name;
-      if (name) rawHoles = await findHolesByName(name, GCA_KEY);
+      const profile = await resolveCourseProfile(courseId);
+      if (profile?.name) rawHoles = await findHolesByName(profile.name, GCA_KEY);
     }
     if (rawHoles && rawHoles.length >= 9) {
-      return { source: 'gca', holes: rawHoles.map((h) => ({ ...h, estimated: false })) };
+      return { source: 'gca', holes: rawHoles };
     }
   }
 
-  const resolvedProfile = fallback?.par && fallback?.holes ? null : await getProfile();
-  const par = fallback?.par ?? resolvedProfile?.par ?? 72;
-  const numHoles = fallback?.holes ?? resolvedProfile?.holes ?? 18;
-  return { source: 'estimated', holes: extrapolateHoles(par, numHoles) };
+  return { source: 'none', holes: [] };
 }

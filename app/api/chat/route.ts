@@ -164,8 +164,8 @@ export async function POST(req: NextRequest) {
             courseId,
             holes,
             source,
-            note: source === 'estimated'
-              ? 'No real scorecard was found for this course — this is a plausible but ESTIMATED layout (par distribution only, not actual yardages/handicaps). Tell the player it is an estimate, not the official card.'
+            note: source === 'none'
+              ? 'No real scorecard data is available for this course (not in our DB or the Golf Course API). Tell the player honestly that hole-by-hole data isn\'t available — do not guess or estimate par/yardage.'
               : undefined,
           });
         } catch (e) { return `Error fetching holes: ${(e as Error).message}`; }

@@ -1,15 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { RoundType } from './rounds';
-import { extrapolateHoles } from '@/lib/holeExtrapolation';
 
 export interface LiveHole {
   holeNumber: number;
-  par: number;
+  par?: number;
   yardsBlue?: number;
   yardsWhite?: number;
   handicap?: number;
-  estimated?: boolean;
 }
 
 export interface LiveRoundCourse {
@@ -24,7 +22,7 @@ export interface LiveRoundCourse {
   slope9?: number;
 }
 
-type HoleSource = 'db' | 'gca' | 'estimated';
+type HoleSource = 'db' | 'gca' | 'none';
 
 interface LiveRoundState {
   active: boolean;
@@ -36,11 +34,9 @@ interface LiveRoundState {
   holeDataSource: HoleSource | null;
   holeDataLoading: boolean;
   scores: (number | '')[];
-  showLayout: boolean;
 
   start: (course: LiveRoundCourse, holes: 9 | 18, roundType: RoundType) => Promise<void>;
   setScore: (index: number, value: number | '') => void;
-  setShowLayout: (v: boolean) => void;
   setRoundType: (t: RoundType) => void;
   setDate: (d: string) => void;
   discard: () => void;
@@ -50,14 +46,11 @@ function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-// extrapolateHoles() returns { yardage }, but LiveHole (matching the API's
-// wire shape) uses { yardsBlue } — the API route remaps this server-side,
-// but this client-side fallback path (no course.id to fetch from) has to
-// do it itself or the yardage bars in the layout view silently render empty.
-function toLiveHoles(par: number, holes: 9 | 18): LiveHole[] {
-  return extrapolateHoles(par, holes).map((h) => ({
-    holeNumber: h.holeNumber, par: h.par, yardsBlue: h.yardage, estimated: h.estimated,
-  }));
+// Real hole data only. When no scorecard exists anywhere (db or GCA), we
+// still populate bare hole-number placeholders so by-hole score entry always
+// works — but we never invent par or yardage for them.
+function bareHoles(holes: 9 | 18): LiveHole[] {
+  return Array.from({ length: holes }, (_, i) => ({ holeNumber: i + 1 }));
 }
 
 export const useLiveRoundStore = create<LiveRoundState>()(
@@ -72,20 +65,19 @@ export const useLiveRoundStore = create<LiveRoundState>()(
       holeDataSource: null,
       holeDataLoading: false,
       scores: [],
-      showLayout: false,
 
-      // Always ends with a usable hole-by-hole layout — real (db/gca) when
-      // available, otherwise a clearly-flagged estimate from the course's
-      // total par. There's no more "no scorecard, enter a total" fallback.
+      // Always ends with a usable hole-by-hole layout — real (db/gca) data
+      // when available, otherwise bare hole numbers with no par/yardage
+      // claimed. Nothing here is ever fabricated.
       start: async (course, holes, roundType) => {
         set({
           active: true, course, holes, roundType, date: todayISO(),
           holeData: null, holeDataSource: null, holeDataLoading: !!course.id,
-          scores: Array(holes).fill(''), showLayout: false,
+          scores: Array(holes).fill(''),
         });
 
         if (!course.id) {
-          set({ holeData: toLiveHoles(course.par ?? 72, holes), holeDataSource: 'estimated', holeDataLoading: false });
+          set({ holeData: bareHoles(holes), holeDataSource: 'none', holeDataLoading: false });
           return;
         }
 
@@ -95,10 +87,13 @@ export const useLiveRoundStore = create<LiveRoundState>()(
           const res = await fetch(`/api/courses/${encodeURIComponent(course.id)}/holes?${params}`);
           const data = await res.json() as { holes: LiveHole[]; source: HoleSource };
           const relevant = data.holes.filter((h) => h.holeNumber <= holes).slice(0, holes);
-          set({ holeData: relevant, holeDataSource: data.source, holeDataLoading: false });
+          if (relevant.length >= holes) {
+            set({ holeData: relevant, holeDataSource: data.source, holeDataLoading: false });
+          } else {
+            set({ holeData: bareHoles(holes), holeDataSource: 'none', holeDataLoading: false });
+          }
         } catch {
-          // Even a network failure still gets a usable estimated layout
-          set({ holeData: toLiveHoles(course.par ?? 72, holes), holeDataSource: 'estimated', holeDataLoading: false });
+          set({ holeData: bareHoles(holes), holeDataSource: 'none', holeDataLoading: false });
         }
       },
 
@@ -108,13 +103,12 @@ export const useLiveRoundStore = create<LiveRoundState>()(
         set({ scores });
       },
 
-      setShowLayout: (v) => set({ showLayout: v }),
       setRoundType: (t) => set({ roundType: t }),
       setDate: (d) => set({ date: d }),
 
       discard: () => set({
         active: false, course: null, holeData: null, holeDataSource: null,
-        holeDataLoading: false, scores: [], showLayout: false,
+        holeDataLoading: false, scores: [],
       }),
     }),
     { name: 'clarence-live-round' },

@@ -135,16 +135,15 @@ export function QuickLog({ initialCourse, initialRound, onSave, onCancel }: Prop
     return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
   }, [query, selected]);
 
-  // Fetch hole data when switching to by-hole mode. The API always returns
-  // a usable layout now — real (db/gca) when available, otherwise a
-  // clearly-flagged estimate built from the course's total par — so this
-  // essentially never falls back to aggregate-only entry anymore.
+  // Fetch hole data when switching to by-hole mode. Real (db/gca) data only
+  // — if a complete scorecard isn't available, fall back to aggregate entry
+  // rather than show anything invented.
   const fetchHoles = useCallback(async (courseId: string) => {
     setHoleDataLoading(true);
     setHoleDataError('');
     try {
       const res = await fetch(`/api/courses/${encodeURIComponent(courseId)}/holes?holes=${holes}`);
-      const data = await res.json() as { holes: HoleData[]; source?: 'db' | 'gca' | 'estimated' };
+      const data = await res.json() as { holes: HoleData[]; source?: 'db' | 'gca' | 'none' };
       const relevant = data.holes.filter((h) => h.holeNumber <= holes).slice(0, holes);
       if (relevant.length < holes) {
         setHoleDataError('No complete scorecard available — using total score instead.');
@@ -154,9 +153,6 @@ export function QuickLog({ initialCourse, initialRound, onSave, onCancel }: Prop
         setHoleData(relevant);
         setHoleScores(Array(holes).fill(''));
         setHolePutts(Array(holes).fill(''));
-        if (data.source === 'estimated') {
-          setHoleDataError('No official scorecard found — pars below are an estimate, not the real layout.');
-        }
       }
     } catch {
       setHoleDataError('Could not load scorecard — using total score instead.');
@@ -267,8 +263,8 @@ export function QuickLog({ initialCourse, initialRound, onSave, onCancel }: Prop
   // Split holes into front/back 9
   const front9 = holeData?.slice(0, 9) ?? [];
   const back9 = holeData?.slice(9, 18) ?? [];
-  const front9Par = front9.reduce((s, h) => s + h.par, 0);
-  const back9Par = back9.reduce((s, h) => s + h.par, 0);
+  const front9Par = front9.reduce((s, h) => s + (h.par ?? 0), 0);
+  const back9Par = back9.reduce((s, h) => s + (h.par ?? 0), 0);
   const front9Score = holeScores.slice(0, 9).filter((s) => s !== '').reduce((a, b) => a + Number(b), 0);
   const back9Score = holeScores.slice(9, 18).filter((s) => s !== '').reduce((a, b) => a + Number(b), 0);
 
@@ -489,7 +485,7 @@ export function QuickLog({ initialCourse, initialRound, onSave, onCancel }: Prop
                           max={15}
                           className={`w-12 text-center border rounded-md py-1 text-sm font-semibold outline-none focus:border-turf ${
                             holeScores[i] !== ''
-                              ? holeScoreColor(holeScores[i], h.par)
+                              ? holeScoreColor(holeScores[i], h.par ?? 0)
                               : 'text-ink'
                           } border-border bg-paper`}
                           value={holeScores[i] ?? ''}
@@ -528,7 +524,7 @@ export function QuickLog({ initialCourse, initialRound, onSave, onCancel }: Prop
                           max={15}
                           className={`w-12 text-center border rounded-md py-1 text-sm font-semibold outline-none focus:border-turf ${
                             holeScores[9 + i] !== ''
-                              ? holeScoreColor(holeScores[9 + i], h.par)
+                              ? holeScoreColor(holeScores[9 + i], h.par ?? 0)
                               : 'text-ink'
                           } border-border bg-paper`}
                           value={holeScores[9 + i] ?? ''}
