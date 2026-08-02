@@ -1,0 +1,16 @@
+poll_seconds: 30
+min_sane_seats: 50 # sanity floor — fewer parsed seats than this means the parser is probably broken, not that the house is full
+
+showtimes:
+  - label: "Odyssey 70mm — Sun 8/2 7:00p"
+    theater_id: 276
+    showtime_id: 601720
+    movie_id: 104867
+    starts: "2026-08-02T19:00:00"
+
+alert:
+  provider: pushover # pushover | ntfy
+  priority: emergency # repeats until acknowledged, overrides silent mode
+  # No quiet_hours field — deliberately unsupported. A seat dropping at 4am
+  # still matters; the spec calls this out explicitly, so it's an absence,
+  # not an oversight.

@@ -1,51 +1,20 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
 # dependencies
 node_modules/
 
-# Expo
-.expo/
+# secrets
+.env
+.env.local
+
+# runtime state — the browser session and per-showtime alert state are
+# machine-specific and shouldn't be committed
+data/
+
+# build output
 dist/
-web-build/
-expo-env.d.ts
+*.tsbuildinfo
 
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
+# logs
+*.log
 
 # macOS
 .DS_Store
-*.pem
-
-# local env files
-.env
-.env*.local
-
-# Claude Code (session data ignored, commands tracked)
-.claude/
-!.claude/commands/
-!.claude/commands/**
-
-# Next.js
-.next/
-out/
-
-# typescript
-*.tsbuildinfo
-
-# generated native folders
-/ios
-/android
